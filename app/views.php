@@ -68,6 +68,12 @@ function admin_nav(int $id, string $active): string
     return $html . '</nav>';
 }
 
+function auto_refresh_script(int $seconds = 5): string
+{
+    $milliseconds = max(1, $seconds) * 1000;
+    return '<script>setTimeout(function(){window.location.reload()},' . $milliseconds . ')</script>';
+}
+
 function admin_overview_view(int $id): void
 {
     $t = find_tournament($id);
@@ -154,7 +160,7 @@ function display_view(int $id): void
         echo '<tr><td>Terrain ' . (int) $m['field_number'] . '</td><td>' . h($m['participant_a_name']) . '</td><td>vs</td><td>' . h($m['participant_b_name']) . '</td></tr>';
     }
     echo '</tbody></table></div><div class="panel"><h2>Classement general</h2>' . standings_table(array_slice(standings($id), 0, 8)) . '</div></section>';
-    echo '<script>setTimeout(function(){location.reload()},5000)</script>';
+    echo auto_refresh_script(5);
     layout('Affichage TV', ob_get_clean(), 'display');
 }
 
@@ -168,5 +174,6 @@ function mobile_view(int $id): void
         echo '<tr><td>Terrain ' . (int) $m['field_number'] . '</td><td>' . h($m['participant_a_name']) . ' vs ' . h($m['participant_b_name']) . '</td></tr>';
     }
     echo '</tbody></table></section><section class="panel"><h2>Classement</h2>' . standings_table(standings($id)) . '</section>';
+    echo auto_refresh_script(5);
     layout('Vue mobile', ob_get_clean());
 }
