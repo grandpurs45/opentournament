@@ -1,5 +1,6 @@
 /data/*.sqlite
 /data/*.sqlite-*
+/data/sessions/
 /.env
 /.idea/
 /.vscode/
