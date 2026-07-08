@@ -8,6 +8,7 @@ The project follows semantic versioning: `MAJOR.MINOR.PATCH`.
 
 ### Added
 - Added first-name support to bulk team import.
+- Added semicolon support between player first names in bulk team import.
 
 ## [0.2.3] - 2026-07-08
 

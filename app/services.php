@@ -109,7 +109,7 @@ function parse_participant_import_line(string $line): array
     $name = trim((string) ($parts[0] ?? ''));
     $players = '';
     if (isset($parts[1])) {
-        $playersList = preg_split('/\s*[,|]\s*/', trim($parts[1])) ?: [];
+        $playersList = preg_split('/\s*[,;|]\s*/', trim($parts[1])) ?: [];
         $players = implode(PHP_EOL, array_values(array_filter(array_map('trim', $playersList), static fn(string $value): bool => $value !== '')));
     }
     return [$name, $players];

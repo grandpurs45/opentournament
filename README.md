@@ -116,12 +116,12 @@ In a tournament, open `Participants`, then use `Import rapide`.
 Paste one team per line. To include first names, add them after a semicolon:
 
 ```text
-Equipe 1; Alice, Bob
-Equipe 2; Chloe, David
+Equipe 1; Alice; Bob
+Equipe 2; Chloe; David
 Equipe 3
 ```
 
-Blank lines are ignored. Imported entries are created as teams. First names can be separated with commas or `|`.
+Blank lines are ignored. Imported entries are created as teams. First names can be separated with semicolons, commas or `|`.
 
 ## Roadmap
 

@@ -26,7 +26,7 @@ $tournamentId = create_tournament([
 ]);
 
 import_participants($tournamentId, implode(PHP_EOL, [
-    'Equipe 1; Alice, Bob',
+    'Equipe 1; Alice; Bob',
     'Equipe 2',
     'Equipe 3',
     'Equipe 4',
