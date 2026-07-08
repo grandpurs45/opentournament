@@ -81,10 +81,12 @@ function admin_overview_view(int $id): void
     $pools = pools($id);
     $matches = matches_for_tournament($id);
     $finished = array_filter($matches, static fn($m) => $m['status'] === 'finished');
+    $mobileUrl = app_url('/t/' . $id);
     ob_start();
     echo '<section class="page-head"><div><h1>' . h($t['name']) . '</h1><p>' . h($t['event_date']) . ' - ' . h(plugin($t['plugin_key'])['name']) . ' - ' . (int) $t['number_of_fields'] . ' terrain(s)</p></div><div class="actions"><a class="button" href="/display/' . $id . '">Vue TV</a><a class="button" href="/t/' . $id . '">Vue mobile</a></div></section>';
     echo admin_nav($id, 'overview');
     echo '<section class="stats"><div><strong>' . count($participants) . '</strong><span>Participants</span></div><div><strong>' . count($pools) . '</strong><span>Poules</span></div><div><strong>' . count($matches) . '</strong><span>Matchs</span></div><div><strong>' . count($finished) . '</strong><span>Termines</span></div></section>';
+    echo '<section class="panel mobile-link"><div><h2>Acces mobile</h2><p><a href="/t/' . $id . '">' . h($mobileUrl) . '</a></p></div><img class="qr-image" src="/qr/' . $id . '" alt="QR Code acces mobile"></section>';
     echo '<section class="panel flow"><h2>Actions</h2><div class="actions wrap"><form method="post" action="/admin/' . $id . '/generate-pools"><button class="button primary">Generer les poules</button></form><form method="post" action="/admin/' . $id . '/generate-matches"><button class="button primary">Generer les matchs</button></form><a class="button" href="/export/' . $id . '/participants">Export participants</a><a class="button" href="/export/' . $id . '/matches">Export matchs</a><a class="button" href="/export/' . $id . '/standings">Export classements</a></div></section>';
     layout($t['name'], ob_get_clean());
 }
@@ -153,8 +155,9 @@ function display_view(int $id): void
 {
     $t = find_tournament($id);
     $matches = array_slice(array_filter(matches_for_tournament($id), static fn($m) => $m['status'] !== 'finished'), 0, 6);
+    $mobileUrl = app_url('/t/' . $id);
     ob_start();
-    echo '<section class="display-head"><div><h1>' . h($t['name']) . '</h1><p>' . h(plugin($t['plugin_key'])['name']) . ' - ' . h($t['event_date']) . '</p></div><div class="qr">opentournament.local/t/' . $id . '</div></section>';
+    echo '<section class="display-head"><div><h1>' . h($t['name']) . '</h1><p>' . h(plugin($t['plugin_key'])['name']) . ' - ' . h($t['event_date']) . '</p></div><div class="display-qr"><img src="/qr/' . $id . '" alt="QR Code acces mobile"><span>' . h($mobileUrl) . '</span></div></section>';
     echo '<section class="display-grid"><div class="panel"><h2>Prochains matchs</h2><table><tbody>';
     foreach ($matches as $m) {
         echo '<tr><td>Terrain ' . (int) $m['field_number'] . '</td><td>' . h($m['participant_a_name']) . '</td><td>vs</td><td>' . h($m['participant_b_name']) . '</td></tr>';
@@ -176,4 +179,12 @@ function mobile_view(int $id): void
     echo '</tbody></table></section><section class="panel"><h2>Classement</h2>' . standings_table(standings($id)) . '</section>';
     echo auto_refresh_script(5);
     layout('Vue mobile', ob_get_clean());
+}
+
+function qr_view(int $id): void
+{
+    find_tournament($id);
+    header('Content-Type: image/svg+xml; charset=utf-8');
+    header('Cache-Control: no-store');
+    echo qr_svg(app_url('/t/' . $id));
 }

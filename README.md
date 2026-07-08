@@ -15,6 +15,7 @@ The first implementation focuses on running a real Molkky tournament while keepi
 - Use generic or Molkky scoring rules.
 - Show a public TV display.
 - Provide a mobile public view.
+- Generate a per-tournament QR Code for mobile access.
 - Export participants, matches and standings as CSV.
 - Persist data in SQLite.
 

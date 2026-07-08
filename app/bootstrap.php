@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/database.php';
 require_once __DIR__ . '/plugins.php';
+require_once __DIR__ . '/qrcode.php';
 require_once __DIR__ . '/services.php';
 require_once __DIR__ . '/views.php';
 
@@ -30,6 +31,19 @@ function redirect_to(string $path): never
 {
     header('Location: ' . $path);
     exit;
+}
+
+function app_url(string $path = ''): string
+{
+    $base = getenv('APP_URL');
+    if (!$base) {
+        $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (($_SERVER['SERVER_PORT'] ?? '') === '443');
+        $scheme = $https ? 'https' : 'http';
+        $host = $_SERVER['HTTP_HOST'] ?? 'opentournament.local';
+        $base = $scheme . '://' . $host;
+    }
+
+    return rtrim($base, '/') . '/' . ltrim($path, '/');
 }
 
 function request_path(): string

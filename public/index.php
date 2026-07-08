@@ -99,6 +99,11 @@ if (preg_match('#^/t/(\d+)$#', $path, $m)) {
     return;
 }
 
+if (preg_match('#^/qr/(\d+)$#', $path, $m)) {
+    qr_view((int) $m[1]);
+    return;
+}
+
 if (preg_match('#^/export/(\d+)/(participants|matches|standings)$#', $path, $m)) {
     $id = (int) $m[1];
     if ($m[2] === 'participants') {
