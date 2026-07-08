@@ -1,0 +1,6 @@
+.git
+.env
+data/*.sqlite
+data/*.sqlite-*
+data/sessions/
+data/test-*.sqlite
