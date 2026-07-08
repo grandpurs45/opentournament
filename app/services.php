@@ -40,6 +40,35 @@ function create_tournament(array $data): int
     return (int) db()->lastInsertId();
 }
 
+function update_tournament(int $id, array $data): void
+{
+    $tournament = find_tournament($id);
+    $settings = $tournament['settings_array'];
+    foreach (['targetScore', 'winPoints', 'lossPoints'] as $key) {
+        if (isset($data[$key]) && $data[$key] !== '') {
+            $settings[$key] = max(0, (int) $data[$key]);
+        }
+    }
+
+    db()->prepare('UPDATE tournaments SET name = ?, event_date = ?, format = ?, number_of_fields = ?, settings = ?, updated_at = ? WHERE id = ?')
+        ->execute([
+            trim((string) $data['name']),
+            trim((string) $data['event_date']),
+            trim((string) $data['format']),
+            max(1, (int) $data['number_of_fields']),
+            json_encode($settings, JSON_THROW_ON_ERROR),
+            now_iso(),
+            $id,
+        ]);
+    flash('Configuration du tournoi mise a jour.');
+}
+
+function delete_tournament(int $id): void
+{
+    db()->prepare('DELETE FROM tournaments WHERE id = ?')->execute([$id]);
+    flash('Tournoi supprime.');
+}
+
 function participants(int $tournamentId): array
 {
     $stmt = db()->prepare('SELECT * FROM participants WHERE tournament_id = ? ORDER BY id ASC');
@@ -53,10 +82,57 @@ function add_participant(int $tournamentId, array $data): void
     $stmt->execute([$tournamentId, $data['name'], $data['type'], $data['players'], $data['color'], $data['emoji'], now_iso()]);
 }
 
+function import_participants(int $tournamentId, string $names): void
+{
+    $lines = preg_split('/\R+/', $names) ?: [];
+    $added = 0;
+    foreach ($lines as $line) {
+        $name = trim($line);
+        if ($name === '') {
+            continue;
+        }
+        add_participant($tournamentId, [
+            'name' => $name,
+            'type' => 'team',
+            'players' => '',
+            'color' => '',
+            'emoji' => '',
+        ]);
+        $added++;
+    }
+    flash($added . ' participant(s) importe(s).');
+}
+
 function delete_participant(int $tournamentId, int $participantId): void
 {
+    if (participant_has_matches($participantId)) {
+        flash('Participant conserve : il est deja utilise dans des matchs. Supprimez ou regenerez le tournoi explicitement si necessaire.');
+        return;
+    }
     $stmt = db()->prepare('DELETE FROM participants WHERE tournament_id = ? AND id = ?');
     $stmt->execute([$tournamentId, $participantId]);
+    flash('Participant supprime.');
+}
+
+function participant_has_matches(int $participantId): bool
+{
+    $stmt = db()->prepare('SELECT COUNT(*) FROM matches WHERE participant_a_id = ? OR participant_b_id = ?');
+    $stmt->execute([$participantId, $participantId]);
+    return (int) $stmt->fetchColumn() > 0;
+}
+
+function match_count(int $tournamentId): int
+{
+    $stmt = db()->prepare('SELECT COUNT(*) FROM matches WHERE tournament_id = ?');
+    $stmt->execute([$tournamentId]);
+    return (int) $stmt->fetchColumn();
+}
+
+function finished_match_count(int $tournamentId): int
+{
+    $stmt = db()->prepare('SELECT COUNT(*) FROM matches WHERE tournament_id = ? AND status = ?');
+    $stmt->execute([$tournamentId, 'finished']);
+    return (int) $stmt->fetchColumn();
 }
 
 function pools(int $tournamentId): array
@@ -73,11 +149,19 @@ function pool_participants(int $poolId): array
     return $stmt->fetchAll();
 }
 
-function generate_pools(int $tournamentId): void
+function generate_pools(int $tournamentId, bool $force = false): void
 {
     $items = participants($tournamentId);
     if (count($items) < 3) {
         flash('Ajoutez au moins 3 participants avant de generer les poules.');
+        return;
+    }
+    if (!$force && (pools($tournamentId) || match_count($tournamentId) > 0)) {
+        flash('Generation annulee : des poules ou matchs existent deja. Cochez la confirmation pour regenerer.');
+        return;
+    }
+    if (!$force && finished_match_count($tournamentId) > 0) {
+        flash('Generation annulee : des scores sont deja saisis.');
         return;
     }
 
@@ -109,12 +193,20 @@ function generate_pools(int $tournamentId): void
     flash('Poules generees.');
 }
 
-function generate_matches(int $tournamentId): void
+function generate_matches(int $tournamentId, bool $force = false): void
 {
     $tournament = find_tournament($tournamentId);
     $allPools = pools($tournamentId);
     if (!$allPools) {
         flash('Generez les poules avant les matchs.');
+        return;
+    }
+    if (!$force && match_count($tournamentId) > 0) {
+        flash('Generation annulee : des matchs existent deja. Cochez la confirmation pour regenerer.');
+        return;
+    }
+    if (!$force && finished_match_count($tournamentId) > 0) {
+        flash('Generation annulee : des scores sont deja saisis.');
         return;
     }
 
@@ -175,6 +267,13 @@ function save_score(int $tournamentId, int $matchId, int $scoreA, int $scoreB): 
     db()->prepare('UPDATE matches SET score_a = ?, score_b = ?, winner_participant_id = ?, status = ?, updated_at = ? WHERE id = ?')
         ->execute([$scoreA, $scoreB, $winner, 'finished', now_iso(), $matchId]);
     flash('Score enregistre.');
+}
+
+function clear_score(int $tournamentId, int $matchId): void
+{
+    db()->prepare('UPDATE matches SET score_a = NULL, score_b = NULL, winner_participant_id = NULL, status = ?, updated_at = ? WHERE tournament_id = ? AND id = ?')
+        ->execute(['scheduled', now_iso(), $tournamentId, $matchId]);
+    flash('Score efface.');
 }
 
 function standings(int $tournamentId, ?int $poolId = null): array

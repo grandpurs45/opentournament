@@ -186,8 +186,30 @@ button.button {
   color: var(--danger);
 }
 
+.danger-button {
+  color: var(--danger);
+  border-color: #f1b8b2;
+}
+
 .wrap {
   flex-wrap: wrap;
+}
+
+.confirm-action {
+  display: grid;
+  gap: 10px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.confirm-action label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.confirm-action input[type="checkbox"] {
+  width: auto;
 }
 
 .tabs {

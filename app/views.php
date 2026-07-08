@@ -82,12 +82,19 @@ function admin_overview_view(int $id): void
     $matches = matches_for_tournament($id);
     $finished = array_filter($matches, static fn($m) => $m['status'] === 'finished');
     $mobileUrl = app_url('/t/' . $id);
+    $settings = $t['settings_array'];
     ob_start();
     echo '<section class="page-head"><div><h1>' . h($t['name']) . '</h1><p>' . h($t['event_date']) . ' - ' . h(plugin($t['plugin_key'])['name']) . ' - ' . (int) $t['number_of_fields'] . ' terrain(s)</p></div><div class="actions"><a class="button" href="/display/' . $id . '">Vue TV</a><a class="button" href="/t/' . $id . '">Vue mobile</a></div></section>';
     echo admin_nav($id, 'overview');
     echo '<section class="stats"><div><strong>' . count($participants) . '</strong><span>Participants</span></div><div><strong>' . count($pools) . '</strong><span>Poules</span></div><div><strong>' . count($matches) . '</strong><span>Matchs</span></div><div><strong>' . count($finished) . '</strong><span>Termines</span></div></section>';
     echo '<section class="panel mobile-link"><div><h2>Acces mobile</h2><p><a href="/t/' . $id . '">' . h($mobileUrl) . '</a></p></div><img class="qr-image" src="/qr/' . $id . '" alt="QR Code acces mobile"></section>';
-    echo '<section class="panel flow"><h2>Actions</h2><div class="actions wrap"><form method="post" action="/admin/' . $id . '/generate-pools"><button class="button primary">Generer les poules</button></form><form method="post" action="/admin/' . $id . '/generate-matches"><button class="button primary">Generer les matchs</button></form><a class="button" href="/export/' . $id . '/participants">Export participants</a><a class="button" href="/export/' . $id . '/matches">Export matchs</a><a class="button" href="/export/' . $id . '/standings">Export classements</a></div></section>';
+    echo '<section class="grid two"><form class="panel form" method="post" action="/admin/' . $id . '/settings"><h2>Configuration</h2>';
+    echo '<label>Nom<input required name="name" value="' . h($t['name']) . '"></label><label>Date<input required type="date" name="event_date" value="' . h($t['event_date']) . '"></label>';
+    echo '<label>Format<select name="format"><option value="pools"' . ($t['format'] === 'pools' ? ' selected' : '') . '>Poules uniquement</option><option value="pools_finals"' . ($t['format'] === 'pools_finals' ? ' selected' : '') . '>Poules + finales (roadmap)</option></select></label>';
+    echo '<label>Nombre de terrains<input required type="number" min="1" name="number_of_fields" value="' . (int) $t['number_of_fields'] . '"></label>';
+    echo '<label>Score cible<input type="number" min="0" name="targetScore" value="' . h($settings['targetScore'] ?? '') . '"></label><label>Points victoire<input type="number" min="0" name="winPoints" value="' . h($settings['winPoints'] ?? '') . '"></label><label>Points defaite<input type="number" min="0" name="lossPoints" value="' . h($settings['lossPoints'] ?? '') . '"></label>';
+    echo '<button class="button primary">Enregistrer</button></form>';
+    echo '<div class="panel flow"><h2>Actions</h2><form class="confirm-action" method="post" action="/admin/' . $id . '/generate-pools"><label><input type="checkbox" name="force" value="1"> Regenerer meme si des poules ou matchs existent</label><button class="button primary">Generer les poules</button></form><form class="confirm-action" method="post" action="/admin/' . $id . '/generate-matches"><label><input type="checkbox" name="force" value="1"> Regenerer meme si des matchs existent</label><button class="button primary">Generer les matchs</button></form><div class="actions wrap"><a class="button" href="/export/' . $id . '/participants">Export participants</a><a class="button" href="/export/' . $id . '/matches">Export matchs</a><a class="button" href="/export/' . $id . '/standings">Export classements</a></div><form class="confirm-action" method="post" action="/admin/' . $id . '/delete"><label><input required type="checkbox" name="confirm_delete" value="1"> Confirmer la suppression definitive</label><button class="button danger-button">Supprimer le tournoi</button></form></div></section>';
     layout($t['name'], ob_get_clean());
 }
 
@@ -97,7 +104,8 @@ function participants_view(int $id): void
     $rows = participants($id);
     ob_start();
     echo '<section class="page-head"><div><h1>Participants</h1><p>' . h($t['name']) . '</p></div></section>' . admin_nav($id, 'participants');
-    echo '<section class="grid two"><form class="panel form" method="post"><h2>Ajouter</h2><label>Nom<input required name="name"></label><label>Type<select name="type"><option value="team">Equipe</option><option value="player">Joueur</option></select></label><label>Joueurs<textarea name="players" rows="3" placeholder="Un nom par ligne"></textarea></label><label>Couleur<input name="color" placeholder="#2f80ed"></label><label>Emoji<input name="emoji" maxlength="8" placeholder="OT"></label><button class="button primary">Ajouter</button></form>';
+    echo '<section class="grid two"><div class="flow"><form class="panel form" method="post"><h2>Ajouter</h2><label>Nom<input required name="name"></label><label>Type<select name="type"><option value="team">Equipe</option><option value="player">Joueur</option></select></label><label>Joueurs<textarea name="players" rows="3" placeholder="Un nom par ligne"></textarea></label><label>Couleur<input name="color" placeholder="#2f80ed"></label><label>Emoji<input name="emoji" maxlength="8" placeholder="OT"></label><button class="button primary">Ajouter</button></form>';
+    echo '<form class="panel form" method="post" action="/admin/' . $id . '/participants/import"><h2>Import rapide</h2><label>Equipes<textarea required name="participants" rows="8" placeholder="Equipe 1&#10;Equipe 2&#10;Equipe 3"></textarea></label><button class="button primary">Importer</button></form></div>';
     echo '<div class="panel"><h2>Liste</h2><table><thead><tr><th>Nom</th><th>Type</th><th>Joueurs</th><th></th></tr></thead><tbody>';
     foreach ($rows as $row) {
         echo '<tr><td>' . h($row['emoji'] ? $row['emoji'] . ' ' . $row['name'] : $row['name']) . '</td><td>' . h($row['type']) . '</td><td>' . nl2br(h($row['players'])) . '</td><td><form method="post" action="/admin/' . $id . '/participants/delete"><input type="hidden" name="participant_id" value="' . (int) $row['id'] . '"><button class="link danger">Supprimer</button></form></td></tr>';
@@ -118,7 +126,11 @@ function matches_view(int $id): void
     echo '<section class="panel"><table><thead><tr><th>#</th><th>Poule</th><th>Terrain</th><th>Match</th><th>Score</th><th>Statut</th></tr></thead><tbody>';
     foreach ($rows as $row) {
         echo '<tr><td>' . (int) $row['scheduled_order'] . '</td><td>' . h($row['pool_name']) . '</td><td>' . (int) $row['field_number'] . '</td><td>' . h($row['participant_a_name']) . ' vs ' . h($row['participant_b_name']) . '</td>';
-        echo '<td><form class="score-form" method="post" action="/admin/' . $id . '/matches/' . (int) $row['id'] . '/score"><input type="number" min="0" name="score_a" value="' . h($row['score_a'] ?? '') . '"><span>-</span><input type="number" min="0" name="score_b" value="' . h($row['score_b'] ?? '') . '"><button class="button small">OK</button></form></td><td><span class="status">' . h($row['status']) . '</span></td></tr>';
+        echo '<td><form class="score-form" method="post" action="/admin/' . $id . '/matches/' . (int) $row['id'] . '/score"><input type="number" min="0" name="score_a" value="' . h($row['score_a'] ?? '') . '"><span>-</span><input type="number" min="0" name="score_b" value="' . h($row['score_b'] ?? '') . '"><button class="button small">OK</button></form>';
+        if ($row['status'] === 'finished') {
+            echo '<form method="post" action="/admin/' . $id . '/matches/' . (int) $row['id'] . '/clear"><button class="link danger">Effacer</button></form>';
+        }
+        echo '</td><td><span class="status">' . h($row['status']) . '</span></td></tr>';
     }
     if (!$rows) {
         echo '<tr><td colspan="6" class="empty">Generez les matchs depuis la synthese.</td></tr>';

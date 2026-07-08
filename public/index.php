@@ -39,6 +39,29 @@ if (preg_match('#^/admin/(\d+)$#', $path, $m)) {
     return;
 }
 
+if (preg_match('#^/admin/(\d+)/settings$#', $path, $m) && is_post()) {
+    $id = (int) $m[1];
+    update_tournament($id, [
+        'name' => post_string('name'),
+        'event_date' => post_string('event_date'),
+        'format' => post_string('format', 'pools'),
+        'number_of_fields' => post_int('number_of_fields', 1),
+        'targetScore' => post_string('targetScore'),
+        'winPoints' => post_string('winPoints'),
+        'lossPoints' => post_string('lossPoints'),
+    ]);
+    redirect_to('/admin/' . $id);
+}
+
+if (preg_match('#^/admin/(\d+)/delete$#', $path, $m) && is_post()) {
+    if (post_string('confirm_delete') === '1') {
+        delete_tournament((int) $m[1]);
+    } else {
+        flash('Suppression annulee : confirmation requise.');
+    }
+    redirect_to('/');
+}
+
 if (preg_match('#^/admin/(\d+)/participants$#', $path, $m)) {
     $id = (int) $m[1];
     if (is_post()) {
@@ -55,6 +78,12 @@ if (preg_match('#^/admin/(\d+)/participants$#', $path, $m)) {
     return;
 }
 
+if (preg_match('#^/admin/(\d+)/participants/import$#', $path, $m) && is_post()) {
+    $id = (int) $m[1];
+    import_participants($id, post_string('participants'));
+    redirect_to('/admin/' . $id . '/participants');
+}
+
 if (preg_match('#^/admin/(\d+)/participants/delete$#', $path, $m) && is_post()) {
     $id = (int) $m[1];
     delete_participant($id, post_int('participant_id'));
@@ -63,13 +92,13 @@ if (preg_match('#^/admin/(\d+)/participants/delete$#', $path, $m) && is_post()) 
 
 if (preg_match('#^/admin/(\d+)/generate-pools$#', $path, $m) && is_post()) {
     $id = (int) $m[1];
-    generate_pools($id);
+    generate_pools($id, post_string('force') === '1');
     redirect_to('/admin/' . $id);
 }
 
 if (preg_match('#^/admin/(\d+)/generate-matches$#', $path, $m) && is_post()) {
     $id = (int) $m[1];
-    generate_matches($id);
+    generate_matches($id, post_string('force') === '1');
     redirect_to('/admin/' . $id . '/matches');
 }
 
@@ -81,6 +110,12 @@ if (preg_match('#^/admin/(\d+)/matches$#', $path, $m)) {
 if (preg_match('#^/admin/(\d+)/matches/(\d+)/score$#', $path, $m) && is_post()) {
     $id = (int) $m[1];
     save_score($id, (int) $m[2], post_int('score_a'), post_int('score_b'));
+    redirect_to('/admin/' . $id . '/matches');
+}
+
+if (preg_match('#^/admin/(\d+)/matches/(\d+)/clear$#', $path, $m) && is_post()) {
+    $id = (int) $m[1];
+    clear_score($id, (int) $m[2]);
     redirect_to('/admin/' . $id . '/matches');
 }
 

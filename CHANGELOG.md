@@ -4,6 +4,17 @@ All notable changes to OpenTournament will be documented in this file.
 
 The project follows semantic versioning: `MAJOR.MINOR.PATCH`.
 
+## [Unreleased]
+
+### Added
+- Added editable tournament configuration for core settings and scoring values.
+- Added bulk participant import.
+- Added a V1 hardening test script.
+
+### Changed
+- Protected pool and match regeneration behind explicit confirmation when data already exists.
+- Documented `APP_URL` usage for mobile QR Codes in Docker.
+
 ## [0.1.1] - 2026-07-08
 
 ### Changed

@@ -59,6 +59,13 @@ http://localhost:8080
 
 SQLite data is stored in the `opentournament_data` Docker volume.
 
+Set `APP_URL` to the public URL used by phones on the same network. The QR Codes are generated from this value:
+
+```yaml
+environment:
+  APP_URL: http://your-server-ip-or-domain:8080
+```
+
 To update an existing Docker installation:
 
 ```bash
@@ -80,6 +87,12 @@ Releases follow semantic versioning:
 - `PATCH`: compatible fixes.
 
 Changes are tracked in `CHANGELOG.md`.
+
+## Tests
+
+```bash
+php tests/v1_hardening_test.php
+```
 
 ## Roadmap
 

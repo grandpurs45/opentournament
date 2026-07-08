@@ -1,0 +1,59 @@
+<?php
+
+declare(strict_types=1);
+
+$dbPath = dirname(__DIR__) . '/data/test-opentournament.sqlite';
+@unlink($dbPath);
+putenv('SQLITE_PATH=' . $dbPath);
+putenv('APP_URL=http://opentournament.local');
+
+require dirname(__DIR__) . '/app/bootstrap.php';
+
+function assert_true(bool $condition, string $message): void
+{
+    if (!$condition) {
+        fwrite(STDERR, "FAIL: " . $message . PHP_EOL);
+        exit(1);
+    }
+}
+
+$tournamentId = create_tournament([
+    'name' => 'Hardening Test',
+    'event_date' => '2026-07-08',
+    'plugin_key' => 'molkky',
+    'format' => 'pools',
+    'number_of_fields' => 2,
+]);
+
+import_participants($tournamentId, implode(PHP_EOL, [
+    'Equipe 1',
+    'Equipe 2',
+    'Equipe 3',
+    'Equipe 4',
+    'Equipe 5',
+    'Equipe 6',
+    'Equipe 7',
+    'Equipe 8',
+]));
+
+generate_pools($tournamentId);
+assert_true(count(pools($tournamentId)) === 2, '8 teams should generate 2 pools.');
+
+generate_matches($tournamentId);
+assert_true(count(matches_for_tournament($tournamentId)) === 12, '2 pools of 4 should generate 12 matches.');
+
+$firstMatch = matches_for_tournament($tournamentId)[0];
+save_score($tournamentId, (int) $firstMatch['id'], 50, 37);
+assert_true(finished_match_count($tournamentId) === 1, 'A valid Molkky score should finish the match.');
+
+generate_pools($tournamentId);
+assert_true(count(matches_for_tournament($tournamentId)) === 12, 'Regeneration without force should preserve existing matches.');
+assert_true(finished_match_count($tournamentId) === 1, 'Regeneration without force should preserve finished scores.');
+
+clear_score($tournamentId, (int) $firstMatch['id']);
+assert_true(finished_match_count($tournamentId) === 0, 'Score clearing should reopen the match.');
+
+$svg = qr_svg(app_url('/t/' . $tournamentId));
+assert_true(str_starts_with($svg, '<svg'), 'QR generator should return SVG.');
+
+echo 'OK' . PHP_EOL;
