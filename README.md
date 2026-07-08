@@ -109,6 +109,21 @@ Changes are tracked in `CHANGELOG.md`.
 php tests/v1_hardening_test.php
 ```
 
+## Team Import
+
+In a tournament, open `Participants`, then use `Import rapide`.
+
+Paste one team per line:
+
+```text
+Equipe 1
+Equipe 2
+Equipe 3
+Equipe 4
+```
+
+Blank lines are ignored. Imported entries are created as teams.
+
 ## Roadmap
 
 See `ROADMAP.md`.

@@ -252,14 +252,53 @@ th {
   padding: 28px;
 }
 
-.status {
+.status,
+.badge {
   display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 1px solid var(--line);
   border-radius: 999px;
   padding: 4px 9px;
   color: var(--muted);
   font-size: 12px;
+  font-weight: 700;
   background: #fbfcfc;
+  white-space: nowrap;
+}
+
+.badge-draft,
+.badge-scheduled,
+.badge-score-empty {
+  color: #665200;
+  border-color: #f2d56b;
+  background: #fff7cf;
+}
+
+.badge-configured,
+.badge-score-draft {
+  color: #754210;
+  border-color: #f1b66d;
+  background: #fff0de;
+}
+
+.badge-running {
+  color: #064b75;
+  border-color: #84c5ee;
+  background: #e1f3ff;
+}
+
+.badge-finished,
+.badge-score-ok {
+  color: #0f5132;
+  border-color: #8fd1ad;
+  background: #dff7ea;
+}
+
+.badge-cancelled {
+  color: #842029;
+  border-color: #f1aeb5;
+  background: #f8d7da;
 }
 
 .stats {
@@ -410,6 +449,16 @@ th {
   background: #17242d;
   border-color: #2e424e;
   box-shadow: none;
+}
+
+.display .badge {
+  border-color: #2e424e;
+}
+
+.display table th {
+  color: #d6e1e6;
+  font-size: 14px;
+  text-transform: uppercase;
 }
 
 .display .public-stats div,

@@ -26,7 +26,7 @@ function dashboard_view(): void
     echo '<section class="page-head"><div><h1>Tournois</h1><p>Gestion locale des tournois, prete pour XAMPP et Docker.</p></div><a class="button primary" href="/tournaments/create">Creer un tournoi</a></section>';
     echo '<section class="panel"><table><thead><tr><th>Nom</th><th>Date</th><th>Plugin</th><th>Statut</th><th></th></tr></thead><tbody>';
     foreach ($rows as $row) {
-        echo '<tr><td>' . h($row['name']) . '</td><td>' . h($row['event_date']) . '</td><td>' . h(plugin($row['plugin_key'])['name']) . '</td><td><span class="status">' . h($row['status']) . '</span></td><td><a class="button" href="/admin/' . (int) $row['id'] . '">Ouvrir</a></td></tr>';
+        echo '<tr><td>' . h($row['name']) . '</td><td>' . h($row['event_date']) . '</td><td>' . h(plugin($row['plugin_key'])['name']) . '</td><td>' . status_badge($row['status']) . '</td><td><a class="button" href="/admin/' . (int) $row['id'] . '">Ouvrir</a></td></tr>';
     }
     if (!$rows) {
         echo '<tr><td colspan="5" class="empty">Aucun tournoi pour le moment.</td></tr>';
@@ -72,6 +72,31 @@ function auto_refresh_script(int $seconds = 5): string
 {
     $milliseconds = max(1, $seconds) * 1000;
     return '<script>setTimeout(function(){window.location.reload()},' . $milliseconds . ')</script>';
+}
+
+function status_badge(string $status): string
+{
+    $labels = [
+        'draft' => 'Brouillon',
+        'configured' => 'Configure',
+        'running' => 'En cours',
+        'scheduled' => 'A saisir',
+        'finished' => 'Score saisi',
+        'cancelled' => 'Annule',
+    ];
+    $class = preg_replace('/[^a-z0-9_-]/', '', strtolower($status));
+    return '<span class="badge badge-' . h($class ?: 'default') . '">' . h($labels[$status] ?? $status) . '</span>';
+}
+
+function score_state_badge(array $match): string
+{
+    if ($match['status'] === 'finished') {
+        return '<span class="badge badge-score-ok">Valide</span>';
+    }
+    if ($match['score_a'] !== null || $match['score_b'] !== null) {
+        return '<span class="badge badge-score-draft">Partiel</span>';
+    }
+    return '<span class="badge badge-score-empty">Vide</span>';
 }
 
 function admin_overview_view(int $id): void
@@ -123,17 +148,17 @@ function matches_view(int $id): void
     $rows = matches_for_tournament($id);
     ob_start();
     echo '<section class="page-head"><div><h1>Matchs</h1><p>Saisie rapide des scores.</p></div></section>' . admin_nav($id, 'matches');
-    echo '<section class="panel"><table><thead><tr><th>#</th><th>Poule</th><th>Terrain</th><th>Match</th><th>Score</th><th>Statut</th></tr></thead><tbody>';
+    echo '<section class="panel"><table><thead><tr><th>#</th><th>Poule</th><th>Terrain</th><th>Match</th><th>Score</th><th>Saisie</th><th>Statut</th></tr></thead><tbody>';
     foreach ($rows as $row) {
         echo '<tr><td>' . (int) $row['scheduled_order'] . '</td><td>' . h($row['pool_name']) . '</td><td>' . (int) $row['field_number'] . '</td><td>' . h($row['participant_a_name']) . ' vs ' . h($row['participant_b_name']) . '</td>';
         echo '<td><form class="score-form" method="post" action="/admin/' . $id . '/matches/' . (int) $row['id'] . '/score"><input type="number" min="0" name="score_a" value="' . h($row['score_a'] ?? '') . '"><span>-</span><input type="number" min="0" name="score_b" value="' . h($row['score_b'] ?? '') . '"><button class="button small">OK</button></form>';
         if ($row['status'] === 'finished') {
             echo '<form method="post" action="/admin/' . $id . '/matches/' . (int) $row['id'] . '/clear"><button class="link danger">Effacer</button></form>';
         }
-        echo '</td><td><span class="status">' . h($row['status']) . '</span></td></tr>';
+        echo '</td><td>' . score_state_badge($row) . '</td><td>' . status_badge($row['status']) . '</td></tr>';
     }
     if (!$rows) {
-        echo '<tr><td colspan="6" class="empty">Generez les matchs depuis la synthese.</td></tr>';
+        echo '<tr><td colspan="7" class="empty">Generez les matchs depuis la synthese.</td></tr>';
     }
     echo '</tbody></table></section>';
     layout('Matchs', ob_get_clean());
@@ -181,7 +206,7 @@ function progress_bar(array $summary): string
 
 function compact_results_table(array $matches): string
 {
-    $html = '<table><tbody>';
+    $html = '<table><thead><tr><th>Equipe A</th><th>Score</th><th>Equipe B</th></tr></thead><tbody>';
     foreach ($matches as $m) {
         $html .= '<tr><td>' . h($m['participant_a_name']) . '</td><td><strong>' . h($m['score_a']) . '-' . h($m['score_b']) . '</strong></td><td>' . h($m['participant_b_name']) . '</td></tr>';
     }
@@ -201,7 +226,7 @@ function display_view(int $id): void
     echo '<section class="display-head"><div><h1>' . h($t['name']) . '</h1><p>' . h(plugin($t['plugin_key'])['name']) . ' - ' . h($t['event_date']) . '</p></div><div class="display-qr"><img src="/qr/' . $id . '" alt="QR Code acces mobile"><span>' . h($mobileUrl) . '</span></div></section>';
     echo public_stats_cards($summary);
     echo progress_bar($summary);
-    echo '<section class="display-grid"><div class="panel"><h2>Prochains matchs</h2><table><tbody>';
+    echo '<section class="display-grid"><div class="panel"><h2>Prochains matchs</h2><table><thead><tr><th>Terrain</th><th>Equipe A</th><th></th><th>Equipe B</th></tr></thead><tbody>';
     foreach ($matches as $m) {
         echo '<tr><td>Terrain ' . (int) $m['field_number'] . '</td><td>' . h($m['participant_a_name']) . '</td><td>vs</td><td>' . h($m['participant_b_name']) . '</td></tr>';
     }

@@ -4,6 +4,15 @@ All notable changes to OpenTournament will be documented in this file.
 
 The project follows semantic versioning: `MAJOR.MINOR.PATCH`.
 
+## [Unreleased]
+
+### Added
+- Added color-coded status and score-entry badges.
+- Documented bulk team import.
+
+### Changed
+- Added explicit table headers to public TV match and result tables.
+
 ## [0.2.2] - 2026-07-08
 
 ### Changed
