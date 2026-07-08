@@ -4,7 +4,7 @@ All notable changes to OpenTournament will be documented in this file.
 
 The project follows semantic versioning: `MAJOR.MINOR.PATCH`.
 
-## [Unreleased]
+## [0.1.1] - 2026-07-08
 
 ### Changed
 - Added automatic refresh to the mobile public view and standardized the TV refresh script.
