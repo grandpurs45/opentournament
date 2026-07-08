@@ -4,7 +4,7 @@ All notable changes to OpenTournament will be documented in this file.
 
 The project follows semantic versioning: `MAJOR.MINOR.PATCH`.
 
-## [Unreleased]
+## [0.2.0] - 2026-07-08
 
 ### Added
 - Added editable tournament configuration for core settings and scoring values.
