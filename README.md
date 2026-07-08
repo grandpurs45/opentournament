@@ -38,6 +38,15 @@ The application creates `data/opentournament.sqlite` automatically.
 
 ## Docker
 
+Clone the repository on the server:
+
+```bash
+git clone https://github.com/grandpurs45/opentournament.git
+cd opentournament
+```
+
+Start the application:
+
 ```bash
 docker compose up -d
 ```
@@ -49,6 +58,16 @@ http://localhost:8080
 ```
 
 SQLite data is stored in the `opentournament_data` Docker volume.
+
+To update an existing Docker installation:
+
+```bash
+cd opentournament
+git pull
+docker compose up -d --build
+```
+
+The SQLite Docker volume is preserved by this update command.
 
 ## Versioning
 

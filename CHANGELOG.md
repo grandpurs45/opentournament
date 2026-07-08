@@ -9,6 +9,7 @@ The project follows semantic versioning: `MAJOR.MINOR.PATCH`.
 ### Changed
 - Added automatic refresh to the mobile public view and standardized the TV refresh script.
 - Added per-tournament QR Code generation for mobile public access.
+- Documented Docker installation from the GitHub repository and update with `git pull`.
 
 ## [0.1.0] - 2026-07-08
 
