@@ -59,11 +59,26 @@ http://localhost:8080
 
 SQLite data is stored in the `opentournament_data` Docker volume.
 
-Set `APP_URL` to the public URL used by phones on the same network. The QR Codes are generated from this value:
+Set `HTTP_PORT` when port `8080` is already used:
+
+```bash
+HTTP_PORT=8090 APP_URL=http://localhost:8090 docker compose up -d --build
+```
+
+For a persistent setup, create a local `.env` file:
+
+```env
+HTTP_PORT=8090
+APP_URL=http://your-server-ip-or-domain:8090
+```
+
+`APP_URL` must be the public URL used by phones on the same network. The QR Codes are generated from this value.
+
+You can also set it directly in Compose:
 
 ```yaml
 environment:
-  APP_URL: http://your-server-ip-or-domain:8080
+  APP_URL: http://your-server-ip-or-domain:8090
 ```
 
 To update an existing Docker installation:
