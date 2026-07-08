@@ -2,6 +2,7 @@
 /data/*.sqlite-*
 /data/sessions/
 /.env
+/docker-compose.override.yml
 /.idea/
 /.vscode/
 *.log
