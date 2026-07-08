@@ -4,7 +4,7 @@ All notable changes to OpenTournament will be documented in this file.
 
 The project follows semantic versioning: `MAJOR.MINOR.PATCH`.
 
-## [Unreleased]
+## [0.2.2] - 2026-07-08
 
 ### Changed
 - Made the Docker host HTTP port configurable with `HTTP_PORT`.
