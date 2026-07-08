@@ -95,6 +95,11 @@ p {
   color: var(--muted);
 }
 
+.help {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
 .panel {
   background: var(--panel);
   border: 1px solid var(--line);

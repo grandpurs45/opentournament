@@ -113,16 +113,15 @@ php tests/v1_hardening_test.php
 
 In a tournament, open `Participants`, then use `Import rapide`.
 
-Paste one team per line:
+Paste one team per line. To include first names, add them after a semicolon:
 
 ```text
-Equipe 1
-Equipe 2
+Equipe 1; Alice, Bob
+Equipe 2; Chloe, David
 Equipe 3
-Equipe 4
 ```
 
-Blank lines are ignored. Imported entries are created as teams.
+Blank lines are ignored. Imported entries are created as teams. First names can be separated with commas or `|`.
 
 ## Roadmap
 

@@ -87,20 +87,32 @@ function import_participants(int $tournamentId, string $names): void
     $lines = preg_split('/\R+/', $names) ?: [];
     $added = 0;
     foreach ($lines as $line) {
-        $name = trim($line);
+        [$name, $players] = parse_participant_import_line($line);
         if ($name === '') {
             continue;
         }
         add_participant($tournamentId, [
             'name' => $name,
             'type' => 'team',
-            'players' => '',
+            'players' => $players,
             'color' => '',
             'emoji' => '',
         ]);
         $added++;
     }
     flash($added . ' participant(s) importe(s).');
+}
+
+function parse_participant_import_line(string $line): array
+{
+    $parts = preg_split('/\s*[;:]\s*/', trim($line), 2);
+    $name = trim((string) ($parts[0] ?? ''));
+    $players = '';
+    if (isset($parts[1])) {
+        $playersList = preg_split('/\s*[,|]\s*/', trim($parts[1])) ?: [];
+        $players = implode(PHP_EOL, array_values(array_filter(array_map('trim', $playersList), static fn(string $value): bool => $value !== '')));
+    }
+    return [$name, $players];
 }
 
 function delete_participant(int $tournamentId, int $participantId): void

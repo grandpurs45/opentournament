@@ -4,6 +4,11 @@ All notable changes to OpenTournament will be documented in this file.
 
 The project follows semantic versioning: `MAJOR.MINOR.PATCH`.
 
+## [Unreleased]
+
+### Added
+- Added first-name support to bulk team import.
+
 ## [0.2.3] - 2026-07-08
 
 ### Added

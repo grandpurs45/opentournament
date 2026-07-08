@@ -26,7 +26,7 @@ $tournamentId = create_tournament([
 ]);
 
 import_participants($tournamentId, implode(PHP_EOL, [
-    'Equipe 1',
+    'Equipe 1; Alice, Bob',
     'Equipe 2',
     'Equipe 3',
     'Equipe 4',
@@ -35,6 +35,9 @@ import_participants($tournamentId, implode(PHP_EOL, [
     'Equipe 7',
     'Equipe 8',
 ]));
+
+$imported = participants($tournamentId);
+assert_true($imported[0]['players'] === 'Alice' . PHP_EOL . 'Bob', 'Bulk import should parse player first names.');
 
 generate_pools($tournamentId);
 assert_true(count(pools($tournamentId)) === 2, '8 teams should generate 2 pools.');
