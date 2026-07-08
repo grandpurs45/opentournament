@@ -39,14 +39,14 @@ function create_tournament_view(): void
 {
     ob_start();
     echo '<section class="page-head"><div><h1>Nouveau tournoi</h1><p>Choisissez le jeu et le format initial.</p></div></section>';
-    echo '<form class="panel form" method="post"><label>Nom<input required name="name" placeholder="Tournoi Molkky Sainte-Barbe"></label>';
-    echo '<label>Date<input required type="date" name="event_date" value="' . date('Y-m-d') . '"></label>';
+    echo '<form class="panel form" method="post"><label>Nom<input required name="name"></label>';
+    echo '<label>Date<input required type="date" name="event_date"></label>';
     echo '<label>Plugin<select name="plugin_key">';
     foreach (plugins() as $plugin) {
         echo '<option value="' . h($plugin['key']) . '">' . h($plugin['name']) . ' - ' . h($plugin['description']) . '</option>';
     }
     echo '</select></label><label>Format<select name="format"><option value="pools">Poules uniquement</option><option value="pools_finals">Poules + finales (roadmap)</option></select></label>';
-    echo '<label>Nombre de terrains<input required type="number" min="1" name="number_of_fields" value="2"></label>';
+    echo '<label>Nombre de terrains<input required type="number" min="1" name="number_of_fields"></label>';
     echo '<div class="actions"><button class="button primary" type="submit">Creer</button><a class="button" href="/">Annuler</a></div></form>';
     layout('Nouveau tournoi', ob_get_clean());
 }

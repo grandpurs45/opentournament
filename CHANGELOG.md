@@ -16,6 +16,7 @@ The project follows semantic versioning: `MAJOR.MINOR.PATCH`.
 - Protected pool and match regeneration behind explicit confirmation when data already exists.
 - Documented `APP_URL` usage for mobile QR Codes in Docker.
 - Fixed Docker build by installing SQLite development headers only when the PDO SQLite extension needs compilation.
+- Removed prefilled values from the tournament creation form.
 
 ## [0.1.1] - 2026-07-08
 
