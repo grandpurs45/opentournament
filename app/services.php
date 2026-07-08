@@ -304,7 +304,7 @@ function public_tournament_summary(int $tournamentId): array
     ];
 }
 
-function save_score(int $tournamentId, int $matchId, int $scoreA, int $scoreB): void
+function save_score(int $tournamentId, int $matchId, int $scoreA, int $scoreB, bool $useFlash = true): array
 {
     $tournament = find_tournament($tournamentId);
     $selectedPlugin = plugin($tournament['plugin_key']);
@@ -312,20 +312,29 @@ function save_score(int $tournamentId, int $matchId, int $scoreA, int $scoreB): 
     $stmt->execute([$tournamentId, $matchId]);
     $match = $stmt->fetch();
     if (!$match) {
-        flash('Match introuvable.');
-        return;
+        $message = 'Match introuvable.';
+        if ($useFlash) {
+            flash($message);
+        }
+        return ['ok' => false, 'message' => $message];
     }
 
     [$valid, $message] = $selectedPlugin['validator']($scoreA, $scoreB, $tournament['settings_array']);
     if (!$valid) {
-        flash($message);
-        return;
+        if ($useFlash) {
+            flash($message);
+        }
+        return ['ok' => false, 'message' => $message];
     }
 
     $winner = $selectedPlugin['winner']($match, $scoreA, $scoreB, $tournament['settings_array']);
     db()->prepare('UPDATE matches SET score_a = ?, score_b = ?, winner_participant_id = ?, status = ?, updated_at = ? WHERE id = ?')
         ->execute([$scoreA, $scoreB, $winner, 'finished', now_iso(), $matchId]);
-    flash('Score enregistre.');
+    $message = 'Score enregistre.';
+    if ($useFlash) {
+        flash($message);
+    }
+    return ['ok' => true, 'message' => $message];
 }
 
 function clear_score(int $tournamentId, int $matchId): void

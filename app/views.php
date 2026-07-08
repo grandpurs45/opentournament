@@ -151,7 +151,7 @@ function matches_view(int $id): void
     echo '<section class="panel"><table><thead><tr><th>#</th><th>Poule</th><th>Terrain</th><th>Match</th><th>Score</th><th>Saisie</th><th>Statut</th></tr></thead><tbody>';
     foreach ($rows as $row) {
         echo '<tr><td>' . (int) $row['scheduled_order'] . '</td><td>' . h($row['pool_name']) . '</td><td>' . (int) $row['field_number'] . '</td><td>' . h($row['participant_a_name']) . ' vs ' . h($row['participant_b_name']) . '</td>';
-        echo '<td><form class="score-form" method="post" action="/admin/' . $id . '/matches/' . (int) $row['id'] . '/score"><input type="number" min="0" name="score_a" value="' . h($row['score_a'] ?? '') . '"><span>-</span><input type="number" min="0" name="score_b" value="' . h($row['score_b'] ?? '') . '"><button class="button small">OK</button></form>';
+        echo '<td><form class="score-form" data-autosave-score method="post" action="/admin/' . $id . '/matches/' . (int) $row['id'] . '/score"><input type="number" min="0" name="score_a" value="' . h($row['score_a'] ?? '') . '"><span>-</span><input type="number" min="0" name="score_b" value="' . h($row['score_b'] ?? '') . '"><button class="button small">OK</button><small class="autosave-state" aria-live="polite"></small></form>';
         if ($row['status'] === 'finished') {
             echo '<form method="post" action="/admin/' . $id . '/matches/' . (int) $row['id'] . '/clear"><button class="link danger">Effacer</button></form>';
         }
@@ -161,7 +161,55 @@ function matches_view(int $id): void
         echo '<tr><td colspan="7" class="empty">Generez les matchs depuis la synthese.</td></tr>';
     }
     echo '</tbody></table></section>';
+    echo autosave_scores_script();
     layout('Matchs', ob_get_clean());
+}
+
+function autosave_scores_script(): string
+{
+    return <<<'HTML'
+<script>
+document.querySelectorAll('[data-autosave-score]').forEach(function (form) {
+  var timer = null;
+  var state = form.querySelector('.autosave-state');
+  var inputs = form.querySelectorAll('input[type="number"]');
+  function setState(text, mode) {
+    state.textContent = text;
+    state.dataset.state = mode;
+  }
+  function save() {
+    if (!inputs[0].value || !inputs[1].value) {
+      setState('', '');
+      return;
+    }
+    setState('Enregistrement...', 'saving');
+    fetch(form.action, {
+      method: 'POST',
+      headers: {'X-Requested-With': 'fetch'},
+      body: new FormData(form)
+    })
+      .then(function (response) { return response.json(); })
+      .then(function (payload) {
+        setState(payload.message || (payload.ok ? 'Enregistre' : 'Erreur'), payload.ok ? 'ok' : 'error');
+      })
+      .catch(function () {
+        setState('Erreur reseau', 'error');
+      });
+  }
+  inputs.forEach(function (input) {
+    input.addEventListener('input', function () {
+      clearTimeout(timer);
+      setState('Modification...', 'pending');
+      timer = setTimeout(save, 700);
+    });
+    input.addEventListener('blur', function () {
+      clearTimeout(timer);
+      save();
+    });
+  });
+});
+</script>
+HTML;
 }
 
 function standings_table(array $rows): string

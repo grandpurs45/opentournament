@@ -401,9 +401,27 @@ th {
 
 .score-form {
   display: grid;
-  grid-template-columns: 74px 16px 74px auto;
+  grid-template-columns: 74px 16px 74px auto minmax(98px, 1fr);
   gap: 8px;
   align-items: center;
+}
+
+.autosave-state {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.autosave-state[data-state="ok"] {
+  color: #0f5132;
+}
+
+.autosave-state[data-state="error"] {
+  color: var(--danger);
+}
+
+.autosave-state[data-state="saving"],
+.autosave-state[data-state="pending"] {
+  color: #754210;
 }
 
 .flash {
