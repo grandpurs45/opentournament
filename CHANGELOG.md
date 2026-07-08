@@ -10,6 +10,7 @@ The project follows semantic versioning: `MAJOR.MINOR.PATCH`.
 - Added editable tournament configuration for core settings and scoring values.
 - Added bulk participant import.
 - Added a V1 hardening test script.
+- Added public tournament summary stats to TV and mobile views.
 
 ### Changed
 - Protected pool and match regeneration behind explicit confirmation when data already exists.

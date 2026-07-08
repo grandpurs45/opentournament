@@ -245,6 +245,53 @@ SQL);
     return $stmt->fetchAll();
 }
 
+function public_tournament_summary(int $tournamentId): array
+{
+    $tournament = find_tournament($tournamentId);
+    $matches = matches_for_tournament($tournamentId);
+    $participants = participants($tournamentId);
+    $pools = pools($tournamentId);
+    $finished = array_values(array_filter($matches, static fn(array $m): bool => $m['status'] === 'finished'));
+    $remaining = array_values(array_filter($matches, static fn(array $m): bool => $m['status'] !== 'finished'));
+    $total = count($matches);
+    $progress = $total > 0 ? (int) round((count($finished) / $total) * 100) : 0;
+    $fieldNumbers = array_unique(array_map(static fn(array $m): int => (int) $m['field_number'], $matches));
+    sort($fieldNumbers);
+    $fieldsCount = count($fieldNumbers) > 0 ? count($fieldNumbers) : max(1, (int) $tournament['number_of_fields']);
+
+    $topStanding = standings($tournamentId)[0] ?? null;
+    $lastResults = array_slice(array_reverse($finished), 0, 5);
+    $closestMatch = null;
+    foreach ($finished as $match) {
+        $diff = abs((int) $match['score_a'] - (int) $match['score_b']);
+        if ($closestMatch === null || $diff < $closestMatch['diff']) {
+            $closestMatch = ['diff' => $diff, 'match' => $match];
+        }
+    }
+
+    $leaderLabel = $topStanding ? $topStanding['participant'] . ' (' . $topStanding['ranking_points'] . ' pts)' : 'Aucun';
+    $closestLabel = 'Aucun';
+    if ($closestMatch) {
+        $m = $closestMatch['match'];
+        $closestLabel = $m['participant_a_name'] . ' ' . $m['score_a'] . '-' . $m['score_b'] . ' ' . $m['participant_b_name'];
+    }
+
+    return [
+        'tournament' => $tournament,
+        'participants_count' => count($participants),
+        'pools_count' => count($pools),
+        'fields_count' => $fieldsCount,
+        'total_matches' => $total,
+        'finished_matches' => count($finished),
+        'remaining_matches' => count($remaining),
+        'progress' => $progress,
+        'leader_label' => $leaderLabel,
+        'closest_match_label' => $closestLabel,
+        'next_matches' => array_slice($remaining, 0, 8),
+        'last_results' => $lastResults,
+    ];
+}
+
 function save_score(int $tournamentId, int $matchId, int $scoreA, int $scoreB): void
 {
     $tournament = find_tournament($tournamentId);

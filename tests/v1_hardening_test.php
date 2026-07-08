@@ -46,6 +46,11 @@ $firstMatch = matches_for_tournament($tournamentId)[0];
 save_score($tournamentId, (int) $firstMatch['id'], 50, 37);
 assert_true(finished_match_count($tournamentId) === 1, 'A valid Molkky score should finish the match.');
 
+$summary = public_tournament_summary($tournamentId);
+assert_true($summary['finished_matches'] === 1, 'Public summary should count finished matches.');
+assert_true($summary['remaining_matches'] === 11, 'Public summary should count remaining matches.');
+assert_true($summary['progress'] === 8, 'Public summary should expose rounded progress.');
+
 generate_pools($tournamentId);
 assert_true(count(matches_for_tournament($tournamentId)) === 12, 'Regeneration without force should preserve existing matches.');
 assert_true(finished_match_count($tournamentId) === 1, 'Regeneration without force should preserve finished scores.');

@@ -285,6 +285,76 @@ th {
   color: var(--muted);
 }
 
+.public-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.public-stats div {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.public-stats strong {
+  display: block;
+  font-size: 30px;
+}
+
+.public-stats span {
+  color: var(--muted);
+}
+
+.progress-block {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+}
+
+.progress-block > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+
+.progress-block span {
+  color: var(--muted);
+}
+
+.progress-bar {
+  height: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e8eef1;
+}
+
+.progress-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary);
+}
+
+.public-highlight {
+  display: grid;
+  gap: 12px;
+}
+
+.public-highlight p {
+  display: grid;
+  gap: 4px;
+}
+
+.public-highlight strong {
+  color: var(--ink);
+}
+
 .score-form {
   display: grid;
   grid-template-columns: 74px 16px 74px auto;
@@ -342,6 +412,34 @@ th {
   box-shadow: none;
 }
 
+.display .public-stats div,
+.display .progress-block {
+  background: #17242d;
+  border-color: #2e424e;
+}
+
+.display .public-stats strong {
+  color: #ffffff;
+  font-size: 42px;
+}
+
+.display .public-stats span,
+.display .progress-block span {
+  color: #aebbc2;
+}
+
+.display .progress-bar {
+  background: #2e424e;
+}
+
+.display .progress-bar span {
+  background: #49c5a9;
+}
+
+.display .public-highlight strong {
+  color: #ffffff;
+}
+
 .display-head h1 {
   font-size: 56px;
 }
@@ -350,6 +448,10 @@ th {
   display: grid;
   grid-template-columns: 0.9fr 1.1fr;
   gap: 18px;
+}
+
+.display-grid.secondary {
+  grid-template-columns: 1fr 0.8fr;
 }
 
 .display-qr {
@@ -383,6 +485,7 @@ th {
 
   .grid.two,
   .stats,
+  .public-stats,
   .display-grid {
     grid-template-columns: 1fr;
   }

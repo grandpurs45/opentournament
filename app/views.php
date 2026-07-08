@@ -163,32 +163,74 @@ function standings_view(int $id): void
     layout('Classements', ob_get_clean());
 }
 
+function public_stats_cards(array $summary): string
+{
+    return '<section class="public-stats">'
+        . '<div><strong>' . (int) $summary['remaining_matches'] . '</strong><span>Matchs restants</span></div>'
+        . '<div><strong>' . (int) $summary['finished_matches'] . '/' . (int) $summary['total_matches'] . '</strong><span>Matchs termines</span></div>'
+        . '<div><strong>' . (int) $summary['participants_count'] . '</strong><span>Participants</span></div>'
+        . '<div><strong>' . (int) $summary['fields_count'] . '</strong><span>Terrains</span></div>'
+        . '</section>';
+}
+
+function progress_bar(array $summary): string
+{
+    $progress = max(0, min(100, (int) $summary['progress']));
+    return '<section class="progress-block"><div><strong>Progression</strong><span>' . $progress . '%</span></div><div class="progress-bar"><span style="width: ' . $progress . '%"></span></div></section>';
+}
+
+function compact_results_table(array $matches): string
+{
+    $html = '<table><tbody>';
+    foreach ($matches as $m) {
+        $html .= '<tr><td>' . h($m['participant_a_name']) . '</td><td><strong>' . h($m['score_a']) . '-' . h($m['score_b']) . '</strong></td><td>' . h($m['participant_b_name']) . '</td></tr>';
+    }
+    if (!$matches) {
+        $html .= '<tr><td class="empty">Aucun resultat pour le moment.</td></tr>';
+    }
+    return $html . '</tbody></table>';
+}
+
 function display_view(int $id): void
 {
-    $t = find_tournament($id);
-    $matches = array_slice(array_filter(matches_for_tournament($id), static fn($m) => $m['status'] !== 'finished'), 0, 6);
+    $summary = public_tournament_summary($id);
+    $t = $summary['tournament'];
+    $matches = array_slice($summary['next_matches'], 0, 6);
     $mobileUrl = app_url('/t/' . $id);
     ob_start();
     echo '<section class="display-head"><div><h1>' . h($t['name']) . '</h1><p>' . h(plugin($t['plugin_key'])['name']) . ' - ' . h($t['event_date']) . '</p></div><div class="display-qr"><img src="/qr/' . $id . '" alt="QR Code acces mobile"><span>' . h($mobileUrl) . '</span></div></section>';
+    echo public_stats_cards($summary);
+    echo progress_bar($summary);
     echo '<section class="display-grid"><div class="panel"><h2>Prochains matchs</h2><table><tbody>';
     foreach ($matches as $m) {
         echo '<tr><td>Terrain ' . (int) $m['field_number'] . '</td><td>' . h($m['participant_a_name']) . '</td><td>vs</td><td>' . h($m['participant_b_name']) . '</td></tr>';
     }
+    if (!$matches) {
+        echo '<tr><td class="empty">Tous les matchs sont termines.</td></tr>';
+    }
     echo '</tbody></table></div><div class="panel"><h2>Classement general</h2>' . standings_table(array_slice(standings($id), 0, 8)) . '</div></section>';
+    echo '<section class="display-grid secondary"><div class="panel"><h2>Derniers resultats</h2>' . compact_results_table($summary['last_results']) . '</div><div class="panel public-highlight"><h2>Infos tournoi</h2><p><strong>Leader actuel</strong><span>' . h($summary['leader_label']) . '</span></p><p><strong>Match le plus serre</strong><span>' . h($summary['closest_match_label']) . '</span></p><p><strong>Poules</strong><span>' . (int) $summary['pools_count'] . '</span></p></div></section>';
     echo auto_refresh_script(5);
     layout('Affichage TV', ob_get_clean(), 'display');
 }
 
 function mobile_view(int $id): void
 {
-    $t = find_tournament($id);
+    $summary = public_tournament_summary($id);
+    $t = $summary['tournament'];
     ob_start();
     echo '<section class="mobile-head"><h1>' . h($t['name']) . '</h1><p>' . h(plugin($t['plugin_key'])['name']) . '</p></section>';
+    echo public_stats_cards($summary);
+    echo progress_bar($summary);
+    echo '<section class="panel public-highlight"><h2>Infos tournoi</h2><p><strong>Leader actuel</strong><span>' . h($summary['leader_label']) . '</span></p><p><strong>Match le plus serre</strong><span>' . h($summary['closest_match_label']) . '</span></p></section>';
     echo '<section class="panel"><h2>Prochains matchs</h2><table><tbody>';
-    foreach (array_slice(array_filter(matches_for_tournament($id), static fn($m) => $m['status'] !== 'finished'), 0, 10) as $m) {
+    foreach (array_slice($summary['next_matches'], 0, 10) as $m) {
         echo '<tr><td>Terrain ' . (int) $m['field_number'] . '</td><td>' . h($m['participant_a_name']) . ' vs ' . h($m['participant_b_name']) . '</td></tr>';
     }
-    echo '</tbody></table></section><section class="panel"><h2>Classement</h2>' . standings_table(standings($id)) . '</section>';
+    if (!$summary['next_matches']) {
+        echo '<tr><td class="empty">Tous les matchs sont termines.</td></tr>';
+    }
+    echo '</tbody></table></section><section class="panel"><h2>Derniers resultats</h2>' . compact_results_table($summary['last_results']) . '</section><section class="panel"><h2>Classement</h2>' . standings_table(standings($id)) . '</section>';
     echo auto_refresh_script(5);
     layout('Vue mobile', ob_get_clean());
 }
