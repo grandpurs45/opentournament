@@ -1,0 +1,15 @@
+services:
+  opentournament:
+    build: .
+    ports:
+      - "8080:80"
+    environment:
+      APP_ENV: production
+      APP_URL: http://localhost:8080
+      SQLITE_PATH: /var/www/html/data/opentournament.sqlite
+    volumes:
+      - opentournament_data:/var/www/html/data
+    restart: unless-stopped
+
+volumes:
+  opentournament_data:
