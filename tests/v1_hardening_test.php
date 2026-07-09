@@ -108,7 +108,13 @@ generate_matches($finalsId);
 foreach (matches_for_tournament($finalsId) as $match) {
     save_score($finalsId, (int) $match['id'], 10, 5);
 }
+$qualifiedSummary = public_tournament_summary($finalsId);
+assert_true(count($qualifiedSummary['qualified_teams']) === 4, 'Qualified teams should be exposed after pool matches are finished.');
+
 generate_final_matches($finalsId);
+$qualifiedSummaryAfterSemis = public_tournament_summary($finalsId);
+assert_true($qualifiedSummaryAfterSemis['qualified_teams'] === [], 'Qualified teams panel should disappear after semi-finals are generated.');
+
 $finalsMatches = matches_for_tournament($finalsId);
 $semiFinals = array_values(array_filter($finalsMatches, static fn(array $match): bool => $match['round'] === 'Demi-finale'));
 assert_true(count($semiFinals) === 2, 'Pools + finals should generate two semi-finals.');

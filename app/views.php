@@ -356,6 +356,18 @@ function public_rules_panel(array $tournament): string
     return '<div class="panel public-rules"><h2>Regles</h2><p>' . h(plugin($tournament['plugin_key'])['description']) . '</p><ul>' . $items . '</ul></div>';
 }
 
+function public_qualified_panel(array $qualified): string
+{
+    if (!$qualified) {
+        return '';
+    }
+    $items = '';
+    foreach ($qualified as $team) {
+        $items .= '<li><span>' . h($team['pool_name']) . ' #' . (int) $team['rank'] . '</span><strong>' . h($team['participant']) . '</strong><em>' . (int) $team['points'] . ' pts</em></li>';
+    }
+    return '<div class="panel public-qualified"><h2>Equipes qualifiees</h2><p>En attente de generation des phases finales.</p><ul>' . $items . '</ul></div>';
+}
+
 function compact_results_table(array $matches): string
 {
     $html = '<table><thead><tr><th>Equipe A</th><th>Score</th><th>Equipe B</th></tr></thead><tbody>';
@@ -387,7 +399,8 @@ function display_view(int $id): void
         echo '<tr><td colspan="5" class="empty">Tous les matchs sont termines.</td></tr>';
     }
     echo '</tbody></table></div><div class="panel"><h2>Classement general</h2>' . standings_table(array_slice(standings($id), 0, 8)) . '</div></section>';
-    echo '<section class="display-grid secondary"><div class="panel"><h2>Derniers resultats</h2>' . compact_results_table($summary['last_results']) . '</div><div class="panel public-highlight"><h2>Infos tournoi</h2><p><strong>Leader actuel</strong><span>' . h($summary['leader_label']) . '</span></p><p><strong>Match le plus serre</strong><span>' . h($summary['closest_match_label']) . '</span></p><p><strong>Poules</strong><span>' . (int) $summary['pools_count'] . '</span></p></div>' . public_rules_panel($t) . '</section>';
+    $temporaryPanel = $summary['qualified_teams'] ? public_qualified_panel($summary['qualified_teams']) : public_rules_panel($t);
+    echo '<section class="display-grid secondary"><div class="panel"><h2>Derniers resultats</h2>' . compact_results_table($summary['last_results']) . '</div><div class="panel public-highlight"><h2>Infos tournoi</h2><p><strong>Leader actuel</strong><span>' . h($summary['leader_label']) . '</span></p><p><strong>Match le plus serre</strong><span>' . h($summary['closest_match_label']) . '</span></p><p><strong>Poules</strong><span>' . (int) $summary['pools_count'] . '</span></p></div>' . $temporaryPanel . '</section>';
     echo auto_refresh_script(5);
     layout('Affichage TV', ob_get_clean(), 'display');
 }
@@ -401,6 +414,7 @@ function mobile_view(int $id): void
     echo public_stats_cards($summary);
     echo progress_bar($summary);
     echo '<section class="panel public-highlight"><h2>Infos tournoi</h2><p><strong>Leader actuel</strong><span>' . h($summary['leader_label']) . '</span></p><p><strong>Match le plus serre</strong><span>' . h($summary['closest_match_label']) . '</span></p></section>';
+    echo public_qualified_panel($summary['qualified_teams']);
     echo public_rules_panel($t);
     echo '<section class="panel"><h2>Prochains matchs</h2><table><tbody>';
     foreach (array_slice($summary['next_matches'], 0, 10) as $m) {

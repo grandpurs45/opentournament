@@ -420,6 +420,44 @@ th {
   line-height: 1.45;
 }
 
+.public-qualified {
+  display: grid;
+  gap: 10px;
+}
+
+.public-qualified p {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.public-qualified ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.public-qualified li {
+  display: grid;
+  grid-template-columns: 82px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.public-qualified li:last-child {
+  border-bottom: 0;
+}
+
+.public-qualified span,
+.public-qualified em {
+  color: var(--muted);
+  font-size: 12px;
+  font-style: normal;
+}
+
 .field-board {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -643,6 +681,22 @@ th {
   color: #f8fbfc;
 }
 
+.display .public-qualified p,
+.display .public-qualified span,
+.display .public-qualified em {
+  color: #aebbc2;
+}
+
+.display .public-qualified strong {
+  color: #f8fbfc;
+}
+
+.display .public-qualified li {
+  border-bottom-color: #2e424e;
+  grid-template-columns: 70px 1fr auto;
+  padding: 5px 0;
+}
+
 .display .display-head {
   align-items: start;
   flex-direction: row;
@@ -694,17 +748,21 @@ th {
 }
 
 .display .public-highlight,
-.display .public-rules {
+.display .public-rules,
+.display .public-qualified {
   gap: 7px;
 }
 
 .display .public-highlight p,
 .display .public-rules p,
-.display .public-rules li {
+.display .public-rules li,
+.display .public-qualified p,
+.display .public-qualified li {
   font-size: clamp(11px, 0.7vw, 13px);
 }
 
-.display .public-rules ul {
+.display .public-rules ul,
+.display .public-qualified ul {
   gap: 5px;
 }
 

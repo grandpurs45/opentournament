@@ -418,6 +418,7 @@ function public_tournament_summary(int $tournamentId): array
 
     $topStanding = standings($tournamentId)[0] ?? null;
     $lastResults = array_slice(array_reverse($finished), 0, 5);
+    $qualifiedTeams = public_qualified_teams($tournamentId, $tournament, $matches, $pools);
     $closestMatch = null;
     foreach ($finished as $match) {
         $diff = abs((int) $match['score_a'] - (int) $match['score_b']);
@@ -446,7 +447,39 @@ function public_tournament_summary(int $tournamentId): array
         'closest_match_label' => $closestLabel,
         'next_matches' => array_slice($remaining, 0, 8),
         'last_results' => $lastResults,
+        'qualified_teams' => $qualifiedTeams,
     ];
+}
+
+function public_qualified_teams(int $tournamentId, array $tournament, array $matches, array $pools): array
+{
+    if ($tournament['format'] !== 'pools_finals') {
+        return [];
+    }
+
+    $poolMatches = array_values(array_filter($matches, static fn(array $match): bool => $match['phase'] === 'pool'));
+    $finalMatches = array_values(array_filter($matches, static fn(array $match): bool => $match['phase'] === 'final'));
+    if (!$poolMatches || $finalMatches) {
+        return [];
+    }
+
+    $unfinishedPoolMatches = array_filter($poolMatches, static fn(array $match): bool => $match['status'] !== 'finished');
+    if ($unfinishedPoolMatches) {
+        return [];
+    }
+
+    $qualified = [];
+    foreach (array_slice($pools, 0, 2) as $pool) {
+        foreach (array_slice(standings($tournamentId, (int) $pool['id']), 0, 2) as $rank => $row) {
+            $qualified[] = [
+                'pool_name' => $pool['name'],
+                'rank' => $rank + 1,
+                'participant' => $row['participant'],
+                'points' => (int) $row['ranking_points'],
+            ];
+        }
+    }
+    return $qualified;
 }
 
 function save_score(int $tournamentId, int $matchId, int $scoreA, int $scoreB, bool $useFlash = true): array
