@@ -448,7 +448,21 @@ function public_tournament_summary(int $tournamentId): array
         'next_matches' => array_slice($remaining, 0, 8),
         'last_results' => $lastResults,
         'qualified_teams' => $qualifiedTeams,
+        'final_bracket' => final_bracket($matches),
     ];
+}
+
+function final_bracket(array $matches): array
+{
+    $roundLabels = ['Quart de finale', 'Demi-finale', 'Finale', 'Petite finale'];
+    $bracket = [];
+    foreach ($roundLabels as $round) {
+        $roundMatches = array_values(array_filter($matches, static fn(array $match): bool => $match['phase'] === 'final' && $match['round'] === $round));
+        if ($roundMatches) {
+            $bracket[] = ['round' => $round, 'matches' => $roundMatches];
+        }
+    }
+    return $bracket;
 }
 
 function public_qualified_teams(int $tournamentId, array $tournament, array $matches, array $pools): array

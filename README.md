@@ -19,6 +19,7 @@ The first implementation focuses on running a real Molkky tournament while keepi
 - Provide a mobile public view.
 - Show public rules from the active scoring plugin.
 - Temporarily show qualified teams before final stages.
+- Show a final bracket view once final-stage matches exist.
 - Generate a per-tournament QR Code for mobile access.
 - Export participants, matches and standings as CSV.
 - Persist data in SQLite.

@@ -18,6 +18,7 @@ The project follows semantic versioning: `MAJOR.MINOR.PATCH`.
 - Improved match planning by alternating pools instead of scheduling one pool completely before the next.
 - Added an admin field-by-field view for match and score tracking.
 - Temporarily display qualified teams on TV and mobile before final stages are generated.
+- Added a final bracket view for admin, TV and mobile displays.
 
 ## [0.2.3] - 2026-07-08
 

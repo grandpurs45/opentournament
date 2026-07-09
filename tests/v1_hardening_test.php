@@ -114,6 +114,7 @@ assert_true(count($qualifiedSummary['qualified_teams']) === 4, 'Qualified teams 
 generate_final_matches($finalsId);
 $qualifiedSummaryAfterSemis = public_tournament_summary($finalsId);
 assert_true($qualifiedSummaryAfterSemis['qualified_teams'] === [], 'Qualified teams panel should disappear after semi-finals are generated.');
+assert_true(count($qualifiedSummaryAfterSemis['final_bracket']) === 1 && $qualifiedSummaryAfterSemis['final_bracket'][0]['round'] === 'Demi-finale', 'Final bracket should expose generated semi-finals.');
 
 $finalsMatches = matches_for_tournament($finalsId);
 $semiFinals = array_values(array_filter($finalsMatches, static fn(array $match): bool => $match['round'] === 'Demi-finale'));

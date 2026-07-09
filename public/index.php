@@ -147,6 +147,11 @@ if (preg_match('#^/admin/(\d+)/standings$#', $path, $m)) {
     return;
 }
 
+if (preg_match('#^/admin/(\d+)/bracket$#', $path, $m)) {
+    bracket_view((int) $m[1]);
+    return;
+}
+
 if (preg_match('#^/display/(\d+)$#', $path, $m)) {
     display_view((int) $m[1]);
     return;
