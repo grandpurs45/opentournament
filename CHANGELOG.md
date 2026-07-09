@@ -21,6 +21,7 @@ The project follows semantic versioning: `MAJOR.MINOR.PATCH`.
 - Added a final bracket view for admin, TV and mobile displays.
 - Count expected final-stage matches in public progress before they are generated.
 - Fixed final bracket score alignment on narrow TV cards.
+- Changed final bracket rendering to a connected graphical bracket layout.
 
 ## [0.2.3] - 2026-07-08
 

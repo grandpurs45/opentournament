@@ -461,18 +461,24 @@ th {
 .final-bracket {
   display: grid;
   gap: 14px;
+  overflow-x: auto;
 }
 
 .bracket-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 14px;
-  align-items: start;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(220px, 1fr);
+  gap: 54px;
+  align-items: stretch;
+  min-width: max-content;
+  padding: 6px 18px 6px 0;
 }
 
 .bracket-round {
   display: grid;
-  gap: 12px;
+  grid-template-rows: auto 1fr;
+  gap: 16px;
+  min-width: 220px;
 }
 
 .bracket-round h3 {
@@ -482,13 +488,66 @@ th {
   text-transform: uppercase;
 }
 
+.bracket-round-matches {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  gap: 24px;
+  min-height: 220px;
+}
+
+.bracket-count-1 .bracket-round-matches {
+  justify-content: center;
+}
+
+.bracket-count-2 .bracket-round-matches {
+  min-height: 260px;
+}
+
+.bracket-count-4 .bracket-round-matches {
+  min-height: 460px;
+}
+
 .bracket-match {
   display: grid;
   gap: 6px;
+  position: relative;
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #fbfcfc;
+}
+
+.has-next-round .bracket-match::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: -55px;
+  width: 55px;
+  border-top: 2px solid #c8d2d8;
+}
+
+.has-next-round .bracket-match:nth-child(odd)::before,
+.has-next-round .bracket-match:nth-child(even)::before {
+  content: "";
+  position: absolute;
+  right: -55px;
+  width: 28px;
+  border-right: 2px solid #c8d2d8;
+}
+
+.has-next-round .bracket-match:nth-child(odd)::before {
+  top: 50%;
+  bottom: -50%;
+}
+
+.has-next-round .bracket-match:nth-child(even)::before {
+  top: -50%;
+  bottom: 50%;
+}
+
+.has-next-round.bracket-count-1 .bracket-match::before {
+  display: none;
 }
 
 .bracket-match small {
@@ -764,15 +823,32 @@ th {
 
 .display .final-bracket {
   gap: 7px;
+  overflow: hidden;
 }
 
 .display .bracket-grid {
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  gap: 8px;
+  grid-auto-columns: minmax(132px, 1fr);
+  gap: 24px;
+  min-width: 0;
+  padding-right: 0;
 }
 
 .display .bracket-round {
   gap: 7px;
+  min-width: 0;
+}
+
+.display .bracket-round-matches {
+  gap: 9px;
+  min-height: 110px;
+}
+
+.display .bracket-count-2 .bracket-round-matches {
+  min-height: 150px;
+}
+
+.display .bracket-count-4 .bracket-round-matches {
+  min-height: 240px;
 }
 
 .display .bracket-round h3,
@@ -789,6 +865,19 @@ th {
   padding: 7px;
   border-color: #2e424e;
   background: #101820;
+}
+
+.display .has-next-round .bracket-match::after {
+  right: -25px;
+  width: 25px;
+  border-top-color: #536671;
+}
+
+.display .has-next-round .bracket-match:nth-child(odd)::before,
+.display .has-next-round .bracket-match:nth-child(even)::before {
+  right: -25px;
+  width: 12px;
+  border-right-color: #536671;
 }
 
 .display .bracket-match p {

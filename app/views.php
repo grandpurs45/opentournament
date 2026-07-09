@@ -390,15 +390,17 @@ function final_bracket_panel(array $bracket): string
     }
 
     $html = '<div class="panel final-bracket"><h2>Tableau final</h2><div class="bracket-grid">';
-    foreach ($bracket as $round) {
-        $html .= '<section class="bracket-round"><h3>' . h($round['round']) . '</h3>';
-        foreach ($round['matches'] as $match) {
+    foreach ($bracket as $roundIndex => $round) {
+        $nextRound = $bracket[$roundIndex + 1]['round'] ?? null;
+        $hasNextRound = $nextRound !== null && $round['round'] !== 'Finale' && $nextRound !== 'Petite finale';
+        $html .= '<section class="bracket-round bracket-count-' . count($round['matches']) . ($hasNextRound ? ' has-next-round' : '') . '"><h3>' . h($round['round']) . '</h3><div class="bracket-round-matches">';
+        foreach ($round['matches'] as $matchIndex => $match) {
             $html .= '<article class="bracket-match"><small>Match #' . (int) $match['scheduled_order'] . ' - Terrain ' . (int) $match['field_number'] . '</small>'
                 . bracket_team_row($match['participant_a_name'], $match['score_a'], (int) $match['winner_participant_id'] === (int) $match['participant_a_id'])
                 . bracket_team_row($match['participant_b_name'], $match['score_b'], (int) $match['winner_participant_id'] === (int) $match['participant_b_id'])
                 . '</article>';
         }
-        $html .= '</section>';
+        $html .= '</div></section>';
     }
     return $html . '</div></div>';
 }
