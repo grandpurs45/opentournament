@@ -90,11 +90,15 @@ function status_badge(string $status): string
 
 function score_state_badge(array $match): string
 {
+    $hasDraft = $match['draft_score_a'] !== null || $match['draft_score_b'] !== null;
     if ($match['status'] === 'finished') {
+        if ($hasDraft) {
+            return '<span class="badge badge-score-draft">Brouillon modifie</span>';
+        }
         return '<span class="badge badge-score-ok">Valide</span>';
     }
-    if ($match['score_a'] !== null || $match['score_b'] !== null) {
-        return '<span class="badge badge-score-draft">Partiel</span>';
+    if ($hasDraft) {
+        return '<span class="badge badge-score-draft">Brouillon</span>';
     }
     return '<span class="badge badge-score-empty">Vide</span>';
 }
@@ -150,8 +154,10 @@ function matches_view(int $id): void
     echo '<section class="page-head"><div><h1>Matchs</h1><p>Saisie rapide des scores.</p></div></section>' . admin_nav($id, 'matches');
     echo '<section class="panel"><table><thead><tr><th>#</th><th>Poule</th><th>Terrain</th><th>Match</th><th>Score</th><th>Saisie</th><th>Statut</th></tr></thead><tbody>';
     foreach ($rows as $row) {
+        $displayScoreA = $row['draft_score_a'] ?? $row['score_a'] ?? '';
+        $displayScoreB = $row['draft_score_b'] ?? $row['score_b'] ?? '';
         echo '<tr><td>' . (int) $row['scheduled_order'] . '</td><td>' . h($row['pool_name']) . '</td><td>' . (int) $row['field_number'] . '</td><td>' . h($row['participant_a_name']) . ' vs ' . h($row['participant_b_name']) . '</td>';
-        echo '<td><form class="score-form" data-autosave-score method="post" action="/admin/' . $id . '/matches/' . (int) $row['id'] . '/score"><input type="number" min="0" name="score_a" value="' . h($row['score_a'] ?? '') . '"><span>-</span><input type="number" min="0" name="score_b" value="' . h($row['score_b'] ?? '') . '"><button class="button small">OK</button><small class="autosave-state" aria-live="polite"></small></form>';
+        echo '<td><form class="score-form" data-autosave-score data-autosave-url="/admin/' . $id . '/matches/' . (int) $row['id'] . '/draft" method="post" action="/admin/' . $id . '/matches/' . (int) $row['id'] . '/score"><input type="number" min="0" name="score_a" value="' . h($displayScoreA) . '"><span>-</span><input type="number" min="0" name="score_b" value="' . h($displayScoreB) . '"><button class="button small">Valider</button><small class="autosave-state" aria-live="polite"></small></form>';
         if ($row['status'] === 'finished') {
             echo '<form method="post" action="/admin/' . $id . '/matches/' . (int) $row['id'] . '/clear"><button class="link danger">Effacer</button></form>';
         }
@@ -171,34 +177,49 @@ function autosave_scores_script(): string
 <script>
 document.querySelectorAll('[data-autosave-score]').forEach(function (form) {
   var timer = null;
+  var dirty = false;
   var state = form.querySelector('.autosave-state');
   var inputs = form.querySelectorAll('input[type="number"]');
+  function hasCompleteScore() {
+    return inputs[0].value !== '' && inputs[1].value !== '';
+  }
   function setState(text, mode) {
     state.textContent = text;
     state.dataset.state = mode;
   }
   function save() {
-    if (!inputs[0].value || !inputs[1].value) {
+    if (!hasCompleteScore()) {
       setState('', '');
       return;
     }
-    setState('Enregistrement...', 'saving');
-    fetch(form.action, {
+    setState('Enregistrement brouillon...', 'saving');
+    fetch(form.dataset.autosaveUrl, {
       method: 'POST',
       headers: {'X-Requested-With': 'fetch'},
       body: new FormData(form)
     })
       .then(function (response) { return response.json(); })
       .then(function (payload) {
-        setState(payload.message || (payload.ok ? 'Enregistre' : 'Erreur'), payload.ok ? 'ok' : 'error');
+        if (payload.ok) {
+          dirty = false;
+        }
+        setState(payload.message || (payload.ok ? 'Brouillon enregistre' : 'Erreur'), payload.ok ? 'ok' : 'error');
       })
       .catch(function () {
         setState('Erreur reseau', 'error');
       });
   }
+  function flush() {
+    if (!dirty || !hasCompleteScore() || !navigator.sendBeacon) {
+      return;
+    }
+    navigator.sendBeacon(form.dataset.autosaveUrl, new FormData(form));
+    dirty = false;
+  }
   inputs.forEach(function (input) {
     input.addEventListener('input', function () {
       clearTimeout(timer);
+      dirty = true;
       setState('Modification...', 'pending');
       timer = setTimeout(save, 700);
     });
@@ -207,6 +228,7 @@ document.querySelectorAll('[data-autosave-score]').forEach(function (form) {
       save();
     });
   });
+  window.addEventListener('pagehide', flush);
 });
 </script>
 HTML;

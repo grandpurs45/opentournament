@@ -46,6 +46,15 @@ generate_matches($tournamentId);
 assert_true(count(matches_for_tournament($tournamentId)) === 12, '2 pools of 4 should generate 12 matches.');
 
 $firstMatch = matches_for_tournament($tournamentId)[0];
+save_score_draft($tournamentId, (int) $firstMatch['id'], 50, 37);
+$draftMatch = matches_for_tournament($tournamentId)[0];
+assert_true((int) $draftMatch['draft_score_a'] === 50 && (int) $draftMatch['draft_score_b'] === 37, 'Draft score should be persisted.');
+assert_true(finished_match_count($tournamentId) === 0, 'Draft score should not finish the match.');
+
+$summary = public_tournament_summary($tournamentId);
+assert_true($summary['finished_matches'] === 0, 'Public summary should ignore draft scores.');
+assert_true($summary['remaining_matches'] === 12, 'Draft score should stay private until validation.');
+
 save_score($tournamentId, (int) $firstMatch['id'], 50, 37);
 assert_true(finished_match_count($tournamentId) === 1, 'A valid Molkky score should finish the match.');
 

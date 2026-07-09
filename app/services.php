@@ -328,18 +328,32 @@ function save_score(int $tournamentId, int $matchId, int $scoreA, int $scoreB, b
     }
 
     $winner = $selectedPlugin['winner']($match, $scoreA, $scoreB, $tournament['settings_array']);
-    db()->prepare('UPDATE matches SET score_a = ?, score_b = ?, winner_participant_id = ?, status = ?, updated_at = ? WHERE id = ?')
+    db()->prepare('UPDATE matches SET score_a = ?, score_b = ?, draft_score_a = NULL, draft_score_b = NULL, winner_participant_id = ?, status = ?, updated_at = ? WHERE id = ?')
         ->execute([$scoreA, $scoreB, $winner, 'finished', now_iso(), $matchId]);
-    $message = 'Score enregistre.';
+    $message = 'Score valide et publie.';
     if ($useFlash) {
         flash($message);
     }
     return ['ok' => true, 'message' => $message];
 }
 
+function save_score_draft(int $tournamentId, int $matchId, int $scoreA, int $scoreB): array
+{
+    $stmt = db()->prepare('SELECT id FROM matches WHERE tournament_id = ? AND id = ?');
+    $stmt->execute([$tournamentId, $matchId]);
+    if (!$stmt->fetch()) {
+        return ['ok' => false, 'message' => 'Match introuvable.'];
+    }
+
+    db()->prepare('UPDATE matches SET draft_score_a = ?, draft_score_b = ?, updated_at = ? WHERE tournament_id = ? AND id = ?')
+        ->execute([$scoreA, $scoreB, now_iso(), $tournamentId, $matchId]);
+
+    return ['ok' => true, 'message' => 'Brouillon enregistre.'];
+}
+
 function clear_score(int $tournamentId, int $matchId): void
 {
-    db()->prepare('UPDATE matches SET score_a = NULL, score_b = NULL, winner_participant_id = NULL, status = ?, updated_at = ? WHERE tournament_id = ? AND id = ?')
+    db()->prepare('UPDATE matches SET score_a = NULL, score_b = NULL, draft_score_a = NULL, draft_score_b = NULL, winner_participant_id = NULL, status = ?, updated_at = ? WHERE tournament_id = ? AND id = ?')
         ->execute(['scheduled', now_iso(), $tournamentId, $matchId]);
     flash('Score efface.');
 }

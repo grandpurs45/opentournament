@@ -79,6 +79,8 @@ CREATE TABLE IF NOT EXISTS matches (
     participant_b_id INTEGER NOT NULL,
     score_a INTEGER,
     score_b INTEGER,
+    draft_score_a INTEGER,
+    draft_score_b INTEGER,
     winner_participant_id INTEGER,
     status TEXT NOT NULL DEFAULT 'scheduled',
     scheduled_order INTEGER NOT NULL,
@@ -91,6 +93,18 @@ CREATE TABLE IF NOT EXISTS matches (
     FOREIGN KEY (participant_b_id) REFERENCES participants(id) ON DELETE CASCADE
 );
 SQL);
+
+    ensure_column($pdo, 'matches', 'draft_score_a', 'INTEGER');
+    ensure_column($pdo, 'matches', 'draft_score_b', 'INTEGER');
+}
+
+function ensure_column(PDO $pdo, string $table, string $column, string $definition): void
+{
+    $stmt = $pdo->query('PRAGMA table_info(' . $table . ')');
+    $columns = array_column($stmt->fetchAll(), 'name');
+    if (!in_array($column, $columns, true)) {
+        $pdo->exec('ALTER TABLE ' . $table . ' ADD COLUMN ' . $column . ' ' . $definition);
+    }
 }
 
 function now_iso(): string

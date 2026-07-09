@@ -107,15 +107,16 @@ if (preg_match('#^/admin/(\d+)/matches$#', $path, $m)) {
     return;
 }
 
+if (preg_match('#^/admin/(\d+)/matches/(\d+)/draft$#', $path, $m) && is_post()) {
+    $result = save_score_draft((int) $m[1], (int) $m[2], post_int('score_a'), post_int('score_b'));
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode($result, JSON_THROW_ON_ERROR);
+    return;
+}
+
 if (preg_match('#^/admin/(\d+)/matches/(\d+)/score$#', $path, $m) && is_post()) {
     $id = (int) $m[1];
-    $isFetch = ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'fetch';
-    $result = save_score($id, (int) $m[2], post_int('score_a'), post_int('score_b'), !$isFetch);
-    if ($isFetch) {
-        header('Content-Type: application/json; charset=utf-8');
-        echo json_encode($result, JSON_THROW_ON_ERROR);
-        return;
-    }
+    save_score($id, (int) $m[2], post_int('score_a'), post_int('score_b'));
     redirect_to('/admin/' . $id . '/matches');
 }
 
