@@ -128,5 +128,12 @@ foreach ($semiFinals as $match) {
 generate_final_matches($finalsId);
 $finalRoundMatches = array_values(array_filter(matches_for_tournament($finalsId), static fn(array $match): bool => in_array($match['round'], ['Finale', 'Petite finale'], true)));
 assert_true(count($finalRoundMatches) === 2, 'Pools + finals should generate final and third-place match.');
+foreach ($finalRoundMatches as $match) {
+    save_score($finalsId, (int) $match['id'], 10, 5);
+}
+$finishedSummary = public_tournament_summary($finalsId);
+assert_true($finishedSummary['is_complete'] === true, 'Tournament should be complete when all expected matches are finished.');
+assert_true(count($finishedSummary['podium']) === 3, 'Completed tournament should expose a podium.');
+assert_true(count($finishedSummary['final_standings']) === 5, 'Completed tournament should expose standings after the podium.');
 
 echo 'OK' . PHP_EOL;

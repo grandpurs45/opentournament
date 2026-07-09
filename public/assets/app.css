@@ -458,6 +458,75 @@ th {
   font-style: normal;
 }
 
+.finished-view {
+  display: grid;
+  gap: 18px;
+}
+
+.podium {
+  display: grid;
+  gap: 16px;
+}
+
+.podium-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  align-items: end;
+}
+
+.podium-place {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  padding: 18px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfc;
+  text-align: center;
+}
+
+.podium-place span {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: #e8eef1;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.podium-place strong {
+  font-size: 18px;
+}
+
+.podium-place-1 {
+  order: 2;
+  min-height: 156px;
+  border-color: #f4c542;
+  background: #fff8d7;
+}
+
+.podium-place-1 span {
+  background: #f4c542;
+  color: #332500;
+}
+
+.podium-place-2 {
+  order: 1;
+  min-height: 128px;
+}
+
+.podium-place-3 {
+  order: 3;
+  min-height: 112px;
+}
+
+.final-ranking {
+  overflow-x: auto;
+}
+
 .final-bracket {
   display: grid;
   gap: 14px;
@@ -819,6 +888,61 @@ th {
   border-bottom-color: #2e424e;
   grid-template-columns: 70px 1fr auto;
   padding: 5px 0;
+}
+
+.display .finished-view {
+  gap: 10px;
+  min-height: 0;
+}
+
+.display .podium {
+  gap: 8px;
+}
+
+.display .podium-steps {
+  gap: 10px;
+}
+
+.display .podium-place {
+  padding: 12px 10px;
+  border-color: #2e424e;
+  background: #17242d;
+  color: #f8fbfc;
+}
+
+.display .podium-place span {
+  width: 34px;
+  height: 34px;
+  background: #2e424e;
+  color: #f8fbfc;
+  font-size: 19px;
+}
+
+.display .podium-place strong {
+  font-size: clamp(16px, 1.5vw, 26px);
+}
+
+.display .podium-place-1 {
+  min-height: 132px;
+  border-color: #f4c542;
+  background: #2b281b;
+}
+
+.display .podium-place-1 span {
+  background: #f4c542;
+  color: #332500;
+}
+
+.display .podium-place-2 {
+  min-height: 108px;
+}
+
+.display .podium-place-3 {
+  min-height: 96px;
+}
+
+.display .final-ranking {
+  min-height: 0;
 }
 
 .display .final-bracket {

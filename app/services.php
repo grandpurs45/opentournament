@@ -418,8 +418,11 @@ function public_tournament_summary(int $tournamentId): array
     $fieldsCount = count($fieldNumbers) > 0 ? count($fieldNumbers) : max(1, (int) $tournament['number_of_fields']);
 
     $topStanding = standings($tournamentId)[0] ?? null;
+    $standings = standings($tournamentId);
     $lastResults = array_slice(array_reverse($finished), 0, 5);
     $qualifiedTeams = public_qualified_teams($tournamentId, $tournament, $matches, $pools);
+    $isComplete = $total > 0 && count($finished) >= $total;
+    $finalRanking = $isComplete ? public_final_ranking($tournamentId, $matches, $standings) : ['podium' => [], 'remaining' => []];
     $closestMatch = null;
     foreach ($finished as $match) {
         $diff = abs((int) $match['score_a'] - (int) $match['score_b']);
@@ -452,6 +455,68 @@ function public_tournament_summary(int $tournamentId): array
         'last_results' => $lastResults,
         'qualified_teams' => $qualifiedTeams,
         'final_bracket' => final_bracket($matches),
+        'is_complete' => $isComplete,
+        'podium' => $finalRanking['podium'],
+        'final_standings' => $finalRanking['remaining'],
+    ];
+}
+
+function public_final_ranking(int $tournamentId, array $matches, array $standings): array
+{
+    $podium = final_podium_from_bracket($matches);
+    if (!$podium) {
+        $podium = array_slice($standings, 0, 3);
+    }
+
+    $podiumIds = array_map(static fn(array $row): int => (int) $row['participant_id'], $podium);
+    $remaining = array_values(array_filter($standings, static fn(array $row): bool => !in_array((int) $row['participant_id'], $podiumIds, true)));
+
+    return ['podium' => array_values($podium), 'remaining' => $remaining];
+}
+
+function final_podium_from_bracket(array $matches): array
+{
+    $final = null;
+    $thirdPlace = null;
+    foreach ($matches as $match) {
+        if ($match['phase'] === 'final' && $match['round'] === 'Finale' && $match['status'] === 'finished') {
+            $final = $match;
+        }
+        if ($match['phase'] === 'final' && $match['round'] === 'Petite finale' && $match['status'] === 'finished') {
+            $thirdPlace = $match;
+        }
+    }
+    if (!$final) {
+        return [];
+    }
+
+    $winnerId = (int) $final['winner_participant_id'];
+    $secondId = $winnerId === (int) $final['participant_a_id'] ? (int) $final['participant_b_id'] : (int) $final['participant_a_id'];
+    $podium = [
+        podium_row_from_match($final, $winnerId),
+        podium_row_from_match($final, $secondId),
+    ];
+
+    if ($thirdPlace) {
+        $podium[] = podium_row_from_match($thirdPlace, (int) $thirdPlace['winner_participant_id']);
+    }
+
+    return $podium;
+}
+
+function podium_row_from_match(array $match, int $participantId): array
+{
+    $isParticipantA = $participantId === (int) $match['participant_a_id'];
+    return [
+        'participant_id' => $participantId,
+        'participant' => $isParticipantA ? $match['participant_a_name'] : $match['participant_b_name'],
+        'ranking_points' => 0,
+        'played' => 0,
+        'wins' => 0,
+        'losses' => 0,
+        'scored' => 0,
+        'conceded' => 0,
+        'diff' => 0,
     ];
 }
 

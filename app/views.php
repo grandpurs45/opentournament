@@ -383,6 +383,37 @@ function public_qualified_panel(array $qualified): string
     return '<div class="panel public-qualified"><h2>Equipes qualifiees</h2><p>En attente de generation des phases finales.</p><ul>' . $items . '</ul></div>';
 }
 
+function public_finished_panel(array $summary): string
+{
+    return '<section class="finished-view">' . podium_panel($summary['podium']) . '<div class="panel final-ranking"><h2>Classement final</h2>' . final_standings_table($summary['final_standings'], 4) . '</div></section>';
+}
+
+function podium_panel(array $podium): string
+{
+    if (!$podium) {
+        return '<div class="panel podium"><h2>Podium</h2><p class="empty compact">Aucun podium disponible.</p></div>';
+    }
+
+    $order = [1 => $podium[0] ?? null, 2 => $podium[1] ?? null, 3 => $podium[2] ?? null];
+    $html = '<div class="panel podium"><h2>Podium</h2><div class="podium-steps">';
+    foreach ($order as $place => $row) {
+        $html .= '<article class="podium-place podium-place-' . $place . '"><span>' . $place . '</span><strong>' . h($row['participant'] ?? '-') . '</strong></article>';
+    }
+    return $html . '</div></div>';
+}
+
+function final_standings_table(array $rows, int $startRank): string
+{
+    $html = '<table><thead><tr><th>#</th><th>Participant</th><th>MJ</th><th>V</th><th>D</th><th>Pts</th><th>Diff</th></tr></thead><tbody>';
+    foreach ($rows as $i => $row) {
+        $html .= '<tr><td>' . ($startRank + $i) . '</td><td>' . h($row['participant']) . '</td><td>' . (int) $row['played'] . '</td><td>' . (int) $row['wins'] . '</td><td>' . (int) $row['losses'] . '</td><td>' . (int) $row['ranking_points'] . '</td><td>' . (int) $row['diff'] . '</td></tr>';
+    }
+    if (!$rows) {
+        $html .= '<tr><td colspan="7" class="empty">Aucune equipe au-dela du podium.</td></tr>';
+    }
+    return $html . '</tbody></table>';
+}
+
 function final_bracket_panel(array $bracket): string
 {
     if (!$bracket) {
@@ -432,6 +463,12 @@ function display_view(int $id): void
     echo '<section class="display-head"><div><h1>' . h($t['name']) . '</h1><p>' . h(plugin($t['plugin_key'])['name']) . ' - ' . h($t['event_date']) . '</p></div><div class="display-qr"><img src="/qr/' . $id . '" alt="QR Code acces mobile"><span>' . h($mobileUrl) . '</span></div></section>';
     echo public_stats_cards($summary);
     echo progress_bar($summary);
+    if ($summary['is_complete']) {
+        echo public_finished_panel($summary);
+        echo auto_refresh_script(5);
+        layout('Affichage TV', ob_get_clean(), 'display');
+        return;
+    }
     echo '<section class="display-grid"><div class="panel"><h2>Prochains matchs</h2><table><thead><tr><th>Terrain</th><th>Poule</th><th>Equipe A</th><th></th><th>Equipe B</th></tr></thead><tbody>';
     foreach ($matches as $m) {
         $phaseLabel = $m['phase'] === 'final' ? $m['round'] : $m['pool_name'];
@@ -455,6 +492,12 @@ function mobile_view(int $id): void
     echo '<section class="mobile-head"><h1>' . h($t['name']) . '</h1><p>' . h(plugin($t['plugin_key'])['name']) . '</p></section>';
     echo public_stats_cards($summary);
     echo progress_bar($summary);
+    if ($summary['is_complete']) {
+        echo public_finished_panel($summary);
+        echo auto_refresh_script(5);
+        layout('Vue mobile', ob_get_clean());
+        return;
+    }
     echo '<section class="panel public-highlight"><h2>Infos tournoi</h2><p><strong>Leader actuel</strong><span>' . h($summary['leader_label']) . '</span></p><p><strong>Match le plus serre</strong><span>' . h($summary['closest_match_label']) . '</span></p></section>';
     echo public_qualified_panel($summary['qualified_teams']);
     echo final_bracket_panel($summary['final_bracket']);
