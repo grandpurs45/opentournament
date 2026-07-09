@@ -321,12 +321,13 @@ function display_view(int $id): void
     echo '<section class="display-head"><div><h1>' . h($t['name']) . '</h1><p>' . h(plugin($t['plugin_key'])['name']) . ' - ' . h($t['event_date']) . '</p></div><div class="display-qr"><img src="/qr/' . $id . '" alt="QR Code acces mobile"><span>' . h($mobileUrl) . '</span></div></section>';
     echo public_stats_cards($summary);
     echo progress_bar($summary);
-    echo '<section class="display-grid"><div class="panel"><h2>Prochains matchs</h2><table><thead><tr><th>Terrain</th><th>Equipe A</th><th></th><th>Equipe B</th></tr></thead><tbody>';
+    echo '<section class="display-grid"><div class="panel"><h2>Prochains matchs</h2><table><thead><tr><th>Terrain</th><th>Poule</th><th>Equipe A</th><th></th><th>Equipe B</th></tr></thead><tbody>';
     foreach ($matches as $m) {
-        echo '<tr><td>Terrain ' . (int) $m['field_number'] . '</td><td>' . h($m['participant_a_name']) . '</td><td>vs</td><td>' . h($m['participant_b_name']) . '</td></tr>';
+        $phaseLabel = $m['phase'] === 'final' ? $m['round'] : $m['pool_name'];
+        echo '<tr><td>Terrain ' . (int) $m['field_number'] . '</td><td>' . h($phaseLabel) . '</td><td>' . h($m['participant_a_name']) . '</td><td>vs</td><td>' . h($m['participant_b_name']) . '</td></tr>';
     }
     if (!$matches) {
-        echo '<tr><td class="empty">Tous les matchs sont termines.</td></tr>';
+        echo '<tr><td colspan="5" class="empty">Tous les matchs sont termines.</td></tr>';
     }
     echo '</tbody></table></div><div class="panel"><h2>Classement general</h2>' . standings_table(array_slice(standings($id), 0, 8)) . '</div></section>';
     echo '<section class="display-grid secondary"><div class="panel"><h2>Derniers resultats</h2>' . compact_results_table($summary['last_results']) . '</div><div class="panel public-highlight"><h2>Infos tournoi</h2><p><strong>Leader actuel</strong><span>' . h($summary['leader_label']) . '</span></p><p><strong>Match le plus serre</strong><span>' . h($summary['closest_match_label']) . '</span></p><p><strong>Poules</strong><span>' . (int) $summary['pools_count'] . '</span></p></div>' . public_rules_panel($t) . '</section>';
