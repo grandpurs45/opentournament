@@ -12,6 +12,7 @@ function plugins(): array
             'defaults' => ['targetScore' => 10, 'winPoints' => 3, 'lossPoints' => 0],
             'validator' => 'generic_validate_score',
             'winner' => 'highest_score_winner',
+            'rules' => 'generic_public_rules',
         ],
         'molkky' => [
             'key' => 'molkky',
@@ -20,6 +21,7 @@ function plugins(): array
             'defaults' => ['targetScore' => 50, 'winPoints' => 3, 'lossPoints' => 0],
             'validator' => 'molkky_validate_score',
             'winner' => 'target_score_winner',
+            'rules' => 'molkky_public_rules',
         ],
     ];
 }
@@ -28,6 +30,37 @@ function plugin(string $key): array
 {
     $plugins = plugins();
     return $plugins[$key] ?? $plugins['generic'];
+}
+
+function plugin_public_rules(string $key, array $settings): array
+{
+    $selectedPlugin = plugin($key);
+    $rulesProvider = $selectedPlugin['rules'] ?? null;
+    if (is_string($rulesProvider) && function_exists($rulesProvider)) {
+        return $rulesProvider($settings);
+    }
+    return [$selectedPlugin['description']];
+}
+
+function generic_public_rules(array $settings): array
+{
+    return [
+        'Chaque match oppose deux participants.',
+        'Le score le plus eleve gagne le match.',
+        'Les egalites ne sont pas acceptees.',
+        'Victoire : ' . (int) ($settings['winPoints'] ?? 3) . ' point(s). Defaite : ' . (int) ($settings['lossPoints'] ?? 0) . ' point(s).',
+    ];
+}
+
+function molkky_public_rules(array $settings): array
+{
+    $target = (int) ($settings['targetScore'] ?? 50);
+    return [
+        'Le vainqueur doit atteindre exactement ' . $target . ' points.',
+        'Un score superieur a ' . $target . ' est refuse dans OpenTournament.',
+        'Les egalites ne sont pas acceptees.',
+        'Victoire : ' . (int) ($settings['winPoints'] ?? 3) . ' point(s). Defaite : ' . (int) ($settings['lossPoints'] ?? 0) . ' point(s).',
+    ];
 }
 
 function generic_validate_score(int $scoreA, int $scoreB, array $settings): array

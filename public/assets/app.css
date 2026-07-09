@@ -399,6 +399,27 @@ th {
   color: var(--ink);
 }
 
+.public-rules {
+  display: grid;
+  gap: 10px;
+}
+
+.public-rules p {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.public-rules ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.public-rules li {
+  line-height: 1.45;
+}
+
 .score-form {
   display: grid;
   grid-template-columns: 74px 16px 74px auto minmax(98px, 1fr);
@@ -512,6 +533,14 @@ th {
   color: #ffffff;
 }
 
+.display .public-rules p {
+  color: #aebbc2;
+}
+
+.display .public-rules li {
+  color: #f8fbfc;
+}
+
 .display-head h1 {
   font-size: 56px;
 }
@@ -524,6 +553,11 @@ th {
 
 .display-grid.secondary {
   grid-template-columns: 1fr 0.8fr;
+}
+
+.display-grid.rules-row {
+  grid-template-columns: 1.2fr 0.8fr;
+  margin-top: 18px;
 }
 
 .display-qr {

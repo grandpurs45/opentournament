@@ -274,6 +274,16 @@ function progress_bar(array $summary): string
     return '<section class="progress-block"><div><strong>Progression</strong><span>' . $progress . '%</span></div><div class="progress-bar"><span style="width: ' . $progress . '%"></span></div></section>';
 }
 
+function public_rules_panel(array $tournament): string
+{
+    $rules = plugin_public_rules($tournament['plugin_key'], $tournament['settings_array']);
+    $items = '';
+    foreach ($rules as $rule) {
+        $items .= '<li>' . h($rule) . '</li>';
+    }
+    return '<div class="panel public-rules"><h2>Regles</h2><p>' . h(plugin($tournament['plugin_key'])['description']) . '</p><ul>' . $items . '</ul></div>';
+}
+
 function compact_results_table(array $matches): string
 {
     $html = '<table><thead><tr><th>Equipe A</th><th>Score</th><th>Equipe B</th></tr></thead><tbody>';
@@ -305,6 +315,7 @@ function display_view(int $id): void
     }
     echo '</tbody></table></div><div class="panel"><h2>Classement general</h2>' . standings_table(array_slice(standings($id), 0, 8)) . '</div></section>';
     echo '<section class="display-grid secondary"><div class="panel"><h2>Derniers resultats</h2>' . compact_results_table($summary['last_results']) . '</div><div class="panel public-highlight"><h2>Infos tournoi</h2><p><strong>Leader actuel</strong><span>' . h($summary['leader_label']) . '</span></p><p><strong>Match le plus serre</strong><span>' . h($summary['closest_match_label']) . '</span></p><p><strong>Poules</strong><span>' . (int) $summary['pools_count'] . '</span></p></div></section>';
+    echo '<section class="display-grid rules-row">' . public_rules_panel($t) . '<div class="panel public-highlight"><h2>Acces mobile</h2><p><strong>QR Code</strong><span>Scannez le code affiche en haut de l ecran.</span></p><p><strong>Lien</strong><span>' . h($mobileUrl) . '</span></p></div></section>';
     echo auto_refresh_script(5);
     layout('Affichage TV', ob_get_clean(), 'display');
 }
@@ -318,6 +329,7 @@ function mobile_view(int $id): void
     echo public_stats_cards($summary);
     echo progress_bar($summary);
     echo '<section class="panel public-highlight"><h2>Infos tournoi</h2><p><strong>Leader actuel</strong><span>' . h($summary['leader_label']) . '</span></p><p><strong>Match le plus serre</strong><span>' . h($summary['closest_match_label']) . '</span></p></section>';
+    echo public_rules_panel($t);
     echo '<section class="panel"><h2>Prochains matchs</h2><table><tbody>';
     foreach (array_slice($summary['next_matches'], 0, 10) as $m) {
         echo '<tr><td>Terrain ' . (int) $m['field_number'] . '</td><td>' . h($m['participant_a_name']) . ' vs ' . h($m['participant_b_name']) . '</td></tr>';

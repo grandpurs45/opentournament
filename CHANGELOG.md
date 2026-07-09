@@ -10,6 +10,7 @@ The project follows semantic versioning: `MAJOR.MINOR.PATCH`.
 - Added first-name support to bulk team import.
 - Added semicolon support between player first names in bulk team import.
 - Added private draft autosave on the match entry page before public score validation.
+- Added public rule display to TV and mobile views.
 
 ## [0.2.3] - 2026-07-08
 

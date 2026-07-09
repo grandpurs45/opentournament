@@ -42,6 +42,9 @@ assert_true($imported[0]['players'] === 'Alice' . PHP_EOL . 'Bob', 'Bulk import 
 generate_pools($tournamentId);
 assert_true(count(pools($tournamentId)) === 2, '8 teams should generate 2 pools.');
 
+$rules = plugin_public_rules('molkky', find_tournament($tournamentId)['settings_array']);
+assert_true(str_contains(implode(' ', $rules), '50'), 'Public rules should include configured target score.');
+
 generate_matches($tournamentId);
 assert_true(count(matches_for_tournament($tournamentId)) === 12, '2 pools of 4 should generate 12 matches.');
 
