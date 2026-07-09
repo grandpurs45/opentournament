@@ -110,6 +110,9 @@ foreach (matches_for_tournament($finalsId) as $match) {
 }
 $qualifiedSummary = public_tournament_summary($finalsId);
 assert_true(count($qualifiedSummary['qualified_teams']) === 4, 'Qualified teams should be exposed after pool matches are finished.');
+assert_true($qualifiedSummary['total_matches'] === 16, 'Pools + finals summary should include expected final-stage matches before generation.');
+assert_true($qualifiedSummary['remaining_matches'] === 4, 'Pools + finals summary should count ungenerated final-stage matches as remaining.');
+assert_true($qualifiedSummary['progress'] === 75, 'Pools + finals progress should use expected final-stage matches.');
 
 generate_final_matches($finalsId);
 $qualifiedSummaryAfterSemis = public_tournament_summary($finalsId);

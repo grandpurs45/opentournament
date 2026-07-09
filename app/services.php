@@ -410,7 +410,8 @@ function public_tournament_summary(int $tournamentId): array
     $pools = pools($tournamentId);
     $finished = array_values(array_filter($matches, static fn(array $m): bool => $m['status'] === 'finished'));
     $remaining = array_values(array_filter($matches, static fn(array $m): bool => $m['status'] !== 'finished'));
-    $total = count($matches);
+    $total = expected_match_count($tournament, $matches);
+    $generatedTotal = count($matches);
     $progress = $total > 0 ? (int) round((count($finished) / $total) * 100) : 0;
     $fieldNumbers = array_unique(array_map(static fn(array $m): int => (int) $m['field_number'], $matches));
     sort($fieldNumbers);
@@ -440,8 +441,10 @@ function public_tournament_summary(int $tournamentId): array
         'pools_count' => count($pools),
         'fields_count' => $fieldsCount,
         'total_matches' => $total,
+        'generated_matches' => $generatedTotal,
         'finished_matches' => count($finished),
-        'remaining_matches' => count($remaining),
+        'remaining_matches' => max(0, $total - count($finished)),
+        'scheduled_remaining_matches' => count($remaining),
         'progress' => $progress,
         'leader_label' => $leaderLabel,
         'closest_match_label' => $closestLabel,
@@ -463,6 +466,24 @@ function final_bracket(array $matches): array
         }
     }
     return $bracket;
+}
+
+function expected_match_count(array $tournament, array $matches): int
+{
+    $generatedCount = count($matches);
+    if ($tournament['format'] !== 'pools_finals') {
+        return $generatedCount;
+    }
+
+    $poolCount = count(array_filter($matches, static fn(array $match): bool => $match['phase'] === 'pool'));
+    if ($poolCount === 0) {
+        return $generatedCount;
+    }
+
+    $expectedFinalCount = 4; // 2 demi-finales, 1 finale, 1 petite finale.
+    $generatedFinalCount = count(array_filter($matches, static fn(array $match): bool => $match['phase'] === 'final'));
+
+    return $poolCount + max($expectedFinalCount, $generatedFinalCount);
 }
 
 function public_qualified_teams(int $tournamentId, array $tournament, array $matches, array $pools): array

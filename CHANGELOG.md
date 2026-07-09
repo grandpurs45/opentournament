@@ -19,6 +19,7 @@ The project follows semantic versioning: `MAJOR.MINOR.PATCH`.
 - Added an admin field-by-field view for match and score tracking.
 - Temporarily display qualified teams on TV and mobile before final stages are generated.
 - Added a final bracket view for admin, TV and mobile displays.
+- Count expected final-stage matches in public progress before they are generated.
 
 ## [0.2.3] - 2026-07-08
 
