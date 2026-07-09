@@ -420,6 +420,82 @@ th {
   line-height: 1.45;
 }
 
+.field-board {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 18px;
+  align-items: start;
+}
+
+.field-card {
+  display: grid;
+  gap: 16px;
+}
+
+.field-card header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+}
+
+.field-card header span,
+.muted {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.field-current {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid #84c5ee;
+  border-radius: 8px;
+  background: #f0f8ff;
+}
+
+.field-current strong {
+  font-size: 18px;
+}
+
+.field-current small {
+  color: var(--muted);
+}
+
+.field-current .score-form {
+  grid-template-columns: 64px 14px 64px auto;
+}
+
+.field-current .autosave-state {
+  grid-column: 1 / -1;
+}
+
+.field-list {
+  display: grid;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.field-list h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.field-list p {
+  display: grid;
+  gap: 2px;
+}
+
+.field-list span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.empty.compact {
+  padding: 10px;
+}
+
 .score-form {
   display: grid;
   grid-template-columns: 74px 16px 74px auto minmax(98px, 1fr);

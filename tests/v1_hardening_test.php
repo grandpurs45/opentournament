@@ -49,6 +49,10 @@ generate_matches($tournamentId);
 $generatedMatches = matches_for_tournament($tournamentId);
 assert_true(count($generatedMatches) === 12, '2 pools of 4 should generate 12 matches.');
 assert_true($generatedMatches[0]['pool_name'] !== $generatedMatches[1]['pool_name'], 'Match planning should alternate pools.');
+ob_start();
+fields_view($tournamentId);
+$fieldsHtml = ob_get_clean();
+assert_true(str_contains($fieldsHtml, 'Terrain 1') && str_contains($fieldsHtml, 'Terrain 2'), 'Fields view should render field cards.');
 
 $firstMatch = $generatedMatches[0];
 save_score_draft($tournamentId, (int) $firstMatch['id'], 50, 37);

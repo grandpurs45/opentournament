@@ -14,6 +14,11 @@ require_once dirname(__DIR__) . '/app/bootstrap.php';
 
 $path = request_path();
 
+function admin_after_match_path(int $tournamentId): string
+{
+    return post_string('return_to') === 'fields' ? '/admin/' . $tournamentId . '/fields' : '/admin/' . $tournamentId . '/matches';
+}
+
 if ($path === '/') {
     dashboard_view();
     return;
@@ -113,6 +118,11 @@ if (preg_match('#^/admin/(\d+)/matches$#', $path, $m)) {
     return;
 }
 
+if (preg_match('#^/admin/(\d+)/fields$#', $path, $m)) {
+    fields_view((int) $m[1]);
+    return;
+}
+
 if (preg_match('#^/admin/(\d+)/matches/(\d+)/draft$#', $path, $m) && is_post()) {
     $result = save_score_draft((int) $m[1], (int) $m[2], post_int('score_a'), post_int('score_b'));
     header('Content-Type: application/json; charset=utf-8');
@@ -123,13 +133,13 @@ if (preg_match('#^/admin/(\d+)/matches/(\d+)/draft$#', $path, $m) && is_post()) 
 if (preg_match('#^/admin/(\d+)/matches/(\d+)/score$#', $path, $m) && is_post()) {
     $id = (int) $m[1];
     save_score($id, (int) $m[2], post_int('score_a'), post_int('score_b'));
-    redirect_to('/admin/' . $id . '/matches');
+    redirect_to(admin_after_match_path($id));
 }
 
 if (preg_match('#^/admin/(\d+)/matches/(\d+)/clear$#', $path, $m) && is_post()) {
     $id = (int) $m[1];
     clear_score($id, (int) $m[2]);
-    redirect_to('/admin/' . $id . '/matches');
+    redirect_to(admin_after_match_path($id));
 }
 
 if (preg_match('#^/admin/(\d+)/standings$#', $path, $m)) {

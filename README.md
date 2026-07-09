@@ -12,6 +12,7 @@ The first implementation focuses on running a real Molkky tournament while keepi
 - Generate round-robin matches.
 - Use pools, full round-robin, or pools with final stages.
 - Enter and validate scores.
+- Track matches and score entry by field.
 - Compute standings automatically.
 - Use generic or Molkky scoring rules.
 - Show a public TV display.

@@ -66,6 +66,7 @@ function admin_nav(int $id, string $active): string
         'overview' => ['/admin/' . $id, 'Synthese'],
         'participants' => ['/admin/' . $id . '/participants', 'Participants'],
         'matches' => ['/admin/' . $id . '/matches', 'Matchs'],
+        'fields' => ['/admin/' . $id . '/fields', 'Terrains'],
         'standings' => ['/admin/' . $id . '/standings', 'Classements'],
         'display' => ['/display/' . $id, 'TV'],
         'mobile' => ['/t/' . $id, 'Mobile'],
@@ -172,9 +173,9 @@ function matches_view(int $id): void
         $displayScoreB = $row['draft_score_b'] ?? $row['score_b'] ?? '';
         $phaseLabel = $row['phase'] === 'final' ? $row['round'] : $row['pool_name'];
         echo '<tr><td>' . (int) $row['scheduled_order'] . '</td><td>' . h($phaseLabel) . '</td><td>' . (int) $row['field_number'] . '</td><td>' . h($row['participant_a_name']) . ' vs ' . h($row['participant_b_name']) . '</td>';
-        echo '<td><form class="score-form" data-autosave-score data-autosave-url="/admin/' . $id . '/matches/' . (int) $row['id'] . '/draft" method="post" action="/admin/' . $id . '/matches/' . (int) $row['id'] . '/score"><input type="number" min="0" name="score_a" value="' . h($displayScoreA) . '"><span>-</span><input type="number" min="0" name="score_b" value="' . h($displayScoreB) . '"><button class="button small">Valider</button><small class="autosave-state" aria-live="polite"></small></form>';
+        echo '<td>' . match_score_form($id, $row, $displayScoreA, $displayScoreB, 'matches');
         if ($row['status'] === 'finished') {
-            echo '<form method="post" action="/admin/' . $id . '/matches/' . (int) $row['id'] . '/clear"><button class="link danger">Effacer</button></form>';
+            echo '<form method="post" action="/admin/' . $id . '/matches/' . (int) $row['id'] . '/clear"><input type="hidden" name="return_to" value="matches"><button class="link danger">Effacer</button></form>';
         }
         echo '</td><td>' . score_state_badge($row) . '</td><td>' . status_badge($row['status']) . '</td></tr>';
     }
@@ -184,6 +185,62 @@ function matches_view(int $id): void
     echo '</tbody></table></section>';
     echo autosave_scores_script();
     layout('Matchs', ob_get_clean());
+}
+
+function match_score_form(int $tournamentId, array $match, string|int $scoreA, string|int $scoreB, string $returnTo): string
+{
+    return '<form class="score-form" data-autosave-score data-autosave-url="/admin/' . $tournamentId . '/matches/' . (int) $match['id'] . '/draft" method="post" action="/admin/' . $tournamentId . '/matches/' . (int) $match['id'] . '/score"><input type="hidden" name="return_to" value="' . h($returnTo) . '"><input type="number" min="0" name="score_a" value="' . h($scoreA) . '"><span>-</span><input type="number" min="0" name="score_b" value="' . h($scoreB) . '"><button class="button small">Valider</button><small class="autosave-state" aria-live="polite"></small></form>';
+}
+
+function fields_view(int $id): void
+{
+    $t = find_tournament($id);
+    $rows = matches_for_tournament($id);
+    $fieldCount = max((int) $t['number_of_fields'], ...array_map(static fn(array $match): int => (int) $match['field_number'], $rows ?: [['field_number' => 1]]));
+    $matchesByField = [];
+    for ($field = 1; $field <= $fieldCount; $field++) {
+        $matchesByField[$field] = array_values(array_filter($rows, static fn(array $match): bool => (int) $match['field_number'] === $field));
+    }
+
+    ob_start();
+    echo '<section class="page-head"><div><h1>Terrains</h1><p>Suivi par terrain des matchs et des scores.</p></div></section>' . admin_nav($id, 'fields');
+    echo '<section class="field-board">';
+    foreach ($matchesByField as $fieldNumber => $matches) {
+        $finished = array_values(array_filter($matches, static fn(array $match): bool => $match['status'] === 'finished'));
+        $remaining = array_values(array_filter($matches, static fn(array $match): bool => $match['status'] !== 'finished'));
+        $current = $remaining[0] ?? null;
+        echo '<article class="panel field-card"><header><h2>Terrain ' . (int) $fieldNumber . '</h2><span>' . count($finished) . '/' . count($matches) . ' termines</span></header>';
+        if ($current) {
+            $phaseLabel = $current['phase'] === 'final' ? $current['round'] : $current['pool_name'];
+            $displayScoreA = $current['draft_score_a'] ?? $current['score_a'] ?? '';
+            $displayScoreB = $current['draft_score_b'] ?? $current['score_b'] ?? '';
+            echo '<div class="field-current"><span class="badge badge-running">En cours</span><strong>' . h($current['participant_a_name']) . ' vs ' . h($current['participant_b_name']) . '</strong><small>' . h($phaseLabel) . ' - Match #' . (int) $current['scheduled_order'] . '</small>' . match_score_form($id, $current, $displayScoreA, $displayScoreB, 'fields') . '</div>';
+        } else {
+            echo '<p class="empty compact">Aucun match restant.</p>';
+        }
+
+        echo '<div class="field-list"><h3>A venir</h3>';
+        foreach (array_slice($remaining, 1, 4) as $match) {
+            $phaseLabel = $match['phase'] === 'final' ? $match['round'] : $match['pool_name'];
+            echo '<p><span>' . h($phaseLabel) . '</span><strong>' . h($match['participant_a_name']) . ' vs ' . h($match['participant_b_name']) . '</strong></p>';
+        }
+        if (count($remaining) <= 1) {
+            echo '<p class="muted">Aucun autre match planifie.</p>';
+        }
+        echo '</div>';
+
+        echo '<div class="field-list"><h3>Derniers resultats</h3>';
+        foreach (array_slice(array_reverse($finished), 0, 3) as $match) {
+            echo '<p><span>#' . (int) $match['scheduled_order'] . '</span><strong>' . h($match['participant_a_name']) . ' ' . h($match['score_a']) . '-' . h($match['score_b']) . ' ' . h($match['participant_b_name']) . '</strong></p>';
+        }
+        if (!$finished) {
+            echo '<p class="muted">Aucun resultat.</p>';
+        }
+        echo '</div></article>';
+    }
+    echo '</section>';
+    echo autosave_scores_script();
+    layout('Terrains', ob_get_clean());
 }
 
 function autosave_scores_script(): string

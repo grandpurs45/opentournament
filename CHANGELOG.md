@@ -16,6 +16,7 @@ The project follows semantic versioning: `MAJOR.MINOR.PATCH`.
 - Added full round-robin and pools-with-finals tournament formats.
 - Added pool or final-round labels to upcoming matches on the TV display.
 - Improved match planning by alternating pools instead of scheduling one pool completely before the next.
+- Added an admin field-by-field view for match and score tracking.
 
 ## [0.2.3] - 2026-07-08
 
