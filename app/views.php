@@ -63,7 +63,8 @@ function admin_nav(int $id, string $active): string
     ];
     $html = '<nav class="tabs">';
     foreach ($items as $key => [$url, $label]) {
-        $html .= '<a class="' . ($key === $active ? 'active' : '') . '" href="' . $url . '">' . $label . '</a>';
+        $target = $key === 'display' ? ' target="_blank" rel="noopener"' : '';
+        $html .= '<a class="' . ($key === $active ? 'active' : '') . '" href="' . $url . '"' . $target . '>' . $label . '</a>';
     }
     return $html . '</nav>';
 }
@@ -113,7 +114,7 @@ function admin_overview_view(int $id): void
     $mobileUrl = app_url('/t/' . $id);
     $settings = $t['settings_array'];
     ob_start();
-    echo '<section class="page-head"><div><h1>' . h($t['name']) . '</h1><p>' . h($t['event_date']) . ' - ' . h(plugin($t['plugin_key'])['name']) . ' - ' . (int) $t['number_of_fields'] . ' terrain(s)</p></div><div class="actions"><a class="button" href="/display/' . $id . '">Vue TV</a><a class="button" href="/t/' . $id . '">Vue mobile</a></div></section>';
+    echo '<section class="page-head"><div><h1>' . h($t['name']) . '</h1><p>' . h($t['event_date']) . ' - ' . h(plugin($t['plugin_key'])['name']) . ' - ' . (int) $t['number_of_fields'] . ' terrain(s)</p></div><div class="actions"><a class="button" href="/display/' . $id . '" target="_blank" rel="noopener">Vue TV</a><a class="button" href="/t/' . $id . '">Vue mobile</a></div></section>';
     echo admin_nav($id, 'overview');
     echo '<section class="stats"><div><strong>' . count($participants) . '</strong><span>Participants</span></div><div><strong>' . count($pools) . '</strong><span>Poules</span></div><div><strong>' . count($matches) . '</strong><span>Matchs</span></div><div><strong>' . count($finished) . '</strong><span>Termines</span></div></section>';
     echo '<section class="panel mobile-link"><div><h2>Acces mobile</h2><p><a href="/t/' . $id . '">' . h($mobileUrl) . '</a></p></div><img class="qr-image" src="/qr/' . $id . '" alt="QR Code acces mobile"></section>';
