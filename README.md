@@ -10,6 +10,7 @@ The first implementation focuses on running a real Molkky tournament while keepi
 - Add teams or players.
 - Generate balanced pools.
 - Generate round-robin matches.
+- Use pools, full round-robin, or pools with final stages.
 - Enter and validate scores.
 - Compute standings automatically.
 - Use generic or Molkky scoring rules.

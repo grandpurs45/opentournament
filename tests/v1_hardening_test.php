@@ -76,4 +76,41 @@ assert_true(finished_match_count($tournamentId) === 0, 'Score clearing should re
 $svg = qr_svg(app_url('/t/' . $tournamentId));
 assert_true(str_starts_with($svg, '<svg'), 'QR generator should return SVG.');
 
+$roundRobinId = create_tournament([
+    'name' => 'Round Robin Test',
+    'event_date' => '2026-07-08',
+    'plugin_key' => 'generic',
+    'format' => 'round_robin',
+    'number_of_fields' => 2,
+]);
+import_participants($roundRobinId, implode(PHP_EOL, ['A', 'B', 'C', 'D', 'E']));
+generate_pools($roundRobinId);
+assert_true(count(pools($roundRobinId)) === 1, 'Round-robin format should generate one pool.');
+generate_matches($roundRobinId);
+assert_true(count(matches_for_tournament($roundRobinId)) === 10, '5 participants should generate 10 round-robin matches.');
+
+$finalsId = create_tournament([
+    'name' => 'Finals Test',
+    'event_date' => '2026-07-08',
+    'plugin_key' => 'generic',
+    'format' => 'pools_finals',
+    'number_of_fields' => 2,
+]);
+import_participants($finalsId, implode(PHP_EOL, ['F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8']));
+generate_pools($finalsId);
+generate_matches($finalsId);
+foreach (matches_for_tournament($finalsId) as $match) {
+    save_score($finalsId, (int) $match['id'], 10, 5);
+}
+generate_final_matches($finalsId);
+$finalsMatches = matches_for_tournament($finalsId);
+$semiFinals = array_values(array_filter($finalsMatches, static fn(array $match): bool => $match['round'] === 'Demi-finale'));
+assert_true(count($semiFinals) === 2, 'Pools + finals should generate two semi-finals.');
+foreach ($semiFinals as $match) {
+    save_score($finalsId, (int) $match['id'], 10, 5);
+}
+generate_final_matches($finalsId);
+$finalRoundMatches = array_values(array_filter(matches_for_tournament($finalsId), static fn(array $match): bool => in_array($match['round'], ['Finale', 'Petite finale'], true)));
+assert_true(count($finalRoundMatches) === 2, 'Pools + finals should generate final and third-place match.');
+
 echo 'OK' . PHP_EOL;

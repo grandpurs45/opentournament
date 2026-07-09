@@ -7,6 +7,34 @@ function all_tournaments(): array
     return db()->query('SELECT * FROM tournaments ORDER BY created_at DESC')->fetchAll();
 }
 
+function tournament_formats(): array
+{
+    return [
+        'pools' => [
+            'label' => 'Poules uniquement',
+            'description' => 'Poules equilibrees puis classement.',
+        ],
+        'round_robin' => [
+            'label' => 'Championnat integral',
+            'description' => 'Une seule poule ou tout le monde rencontre tout le monde.',
+        ],
+        'pools_finals' => [
+            'label' => 'Poules + phases finales',
+            'description' => 'Poules puis demi-finales, finale et petite finale.',
+        ],
+    ];
+}
+
+function tournament_format_label(string $format): string
+{
+    return tournament_formats()[$format]['label'] ?? $format;
+}
+
+function normalize_tournament_format(string $format): string
+{
+    return array_key_exists($format, tournament_formats()) ? $format : 'pools';
+}
+
 function find_tournament(int $id): array
 {
     $stmt = db()->prepare('SELECT * FROM tournaments WHERE id = ?');
@@ -30,7 +58,7 @@ function create_tournament(array $data): int
         $data['name'],
         $data['event_date'],
         $data['plugin_key'],
-        $data['format'],
+        normalize_tournament_format((string) $data['format']),
         max(1, (int) $data['number_of_fields']),
         'draft',
         json_encode($settings, JSON_THROW_ON_ERROR),
@@ -54,7 +82,7 @@ function update_tournament(int $id, array $data): void
         ->execute([
             trim((string) $data['name']),
             trim((string) $data['event_date']),
-            trim((string) $data['format']),
+            normalize_tournament_format(trim((string) $data['format'])),
             max(1, (int) $data['number_of_fields']),
             json_encode($settings, JSON_THROW_ON_ERROR),
             now_iso(),
@@ -182,15 +210,16 @@ function generate_pools(int $tournamentId, bool $force = false): void
     $pdo->prepare('DELETE FROM matches WHERE tournament_id = ?')->execute([$tournamentId]);
     $pdo->prepare('DELETE FROM pools WHERE tournament_id = ?')->execute([$tournamentId]);
 
+    $tournament = find_tournament($tournamentId);
     $count = count($items);
-    $poolCount = max(1, (int) round($count / 4));
+    $poolCount = $tournament['format'] === 'round_robin' ? 1 : max(1, (int) round($count / 4));
     while ($poolCount > 1 && floor($count / $poolCount) < 3) {
         $poolCount--;
     }
 
     $poolIds = [];
     for ($i = 0; $i < $poolCount; $i++) {
-        $name = 'Poule ' . chr(65 + $i);
+        $name = $tournament['format'] === 'round_robin' ? 'Championnat' : 'Poule ' . chr(65 + $i);
         $pdo->prepare('INSERT INTO pools (tournament_id, name, sort_order) VALUES (?, ?, ?)')->execute([$tournamentId, $name, $i + 1]);
         $poolIds[] = (int) $pdo->lastInsertId();
     }
@@ -231,8 +260,7 @@ function generate_matches(int $tournamentId, bool $force = false): void
         $items = pool_participants((int) $pool['id']);
         for ($i = 0; $i < count($items); $i++) {
             for ($j = $i + 1; $j < count($items); $j++) {
-                $pdo->prepare('INSERT INTO matches (tournament_id, pool_id, phase, round, field_number, participant_a_id, participant_b_id, status, scheduled_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-                    ->execute([$tournamentId, $pool['id'], 'pool', $pool['name'], (($order - 1) % $fieldCount) + 1, $items[$i]['id'], $items[$j]['id'], 'scheduled', $order, now_iso(), now_iso()]);
+                insert_match($pdo, $tournamentId, (int) $pool['id'], 'pool', $pool['name'], (($order - 1) % $fieldCount) + 1, (int) $items[$i]['id'], (int) $items[$j]['id'], $order);
                 $order++;
             }
         }
@@ -240,6 +268,105 @@ function generate_matches(int $tournamentId, bool $force = false): void
     $pdo->prepare('UPDATE tournaments SET status = ?, updated_at = ? WHERE id = ?')->execute(['running', now_iso(), $tournamentId]);
     $pdo->commit();
     flash('Matchs generes.');
+}
+
+function insert_match(PDO $pdo, int $tournamentId, ?int $poolId, string $phase, string $round, int $fieldNumber, int $participantAId, int $participantBId, int $order): void
+{
+    $pdo->prepare('INSERT INTO matches (tournament_id, pool_id, phase, round, field_number, participant_a_id, participant_b_id, status, scheduled_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+        ->execute([$tournamentId, $poolId, $phase, $round, $fieldNumber, $participantAId, $participantBId, 'scheduled', $order, now_iso(), now_iso()]);
+}
+
+function generate_final_matches(int $tournamentId): void
+{
+    $tournament = find_tournament($tournamentId);
+    if ($tournament['format'] !== 'pools_finals') {
+        flash('Les phases finales sont disponibles uniquement pour le format Poules + phases finales.');
+        return;
+    }
+
+    $matches = matches_for_tournament($tournamentId);
+    if (!$matches) {
+        flash('Generez les matchs de poule avant les phases finales.');
+        return;
+    }
+
+    $poolMatches = array_filter($matches, static fn(array $match): bool => $match['phase'] === 'pool');
+    $unfinishedPoolMatches = array_filter($poolMatches, static fn(array $match): bool => $match['status'] !== 'finished');
+    if ($unfinishedPoolMatches) {
+        flash('Terminez tous les matchs de poule avant de generer les phases finales.');
+        return;
+    }
+
+    $finalMatches = array_values(array_filter($matches, static fn(array $match): bool => $match['phase'] === 'final'));
+    $semiFinals = array_values(array_filter($finalMatches, static fn(array $match): bool => $match['round'] === 'Demi-finale'));
+    if (!$semiFinals) {
+        generate_semi_finals($tournamentId, $matches);
+        return;
+    }
+
+    $finalRoundMatches = array_values(array_filter($finalMatches, static fn(array $match): bool => in_array($match['round'], ['Finale', 'Petite finale'], true)));
+    if ($finalRoundMatches) {
+        flash('Les finales sont deja generees.');
+        return;
+    }
+
+    $unfinishedSemiFinals = array_filter($semiFinals, static fn(array $match): bool => $match['status'] !== 'finished');
+    if ($unfinishedSemiFinals) {
+        flash('Terminez les demi-finales avant de generer la finale.');
+        return;
+    }
+
+    generate_final_and_third_place($tournamentId, $matches, $semiFinals);
+}
+
+function generate_semi_finals(int $tournamentId, array $matches): void
+{
+    $pools = pools($tournamentId);
+    if (count($pools) < 2) {
+        flash('Les demi-finales necessitent au moins deux poules.');
+        return;
+    }
+
+    $qualified = [];
+    foreach (array_slice($pools, 0, 2) as $pool) {
+        $standing = standings($tournamentId, (int) $pool['id']);
+        if (count($standing) < 2) {
+            flash('Chaque poule doit avoir au moins deux qualifies.');
+            return;
+        }
+        $qualified[] = [$standing[0], $standing[1]];
+    }
+
+    $nextOrder = next_match_order($matches);
+    $fieldCount = max(1, (int) find_tournament($tournamentId)['number_of_fields']);
+    $pdo = db();
+    insert_match($pdo, $tournamentId, null, 'final', 'Demi-finale', (($nextOrder - 1) % $fieldCount) + 1, (int) $qualified[0][0]['participant_id'], (int) $qualified[1][1]['participant_id'], $nextOrder);
+    insert_match($pdo, $tournamentId, null, 'final', 'Demi-finale', ($nextOrder % $fieldCount) + 1, (int) $qualified[1][0]['participant_id'], (int) $qualified[0][1]['participant_id'], $nextOrder + 1);
+    flash('Demi-finales generees.');
+}
+
+function generate_final_and_third_place(int $tournamentId, array $matches, array $semiFinals): void
+{
+    $winners = [];
+    $losers = [];
+    foreach ($semiFinals as $match) {
+        $winnerId = (int) $match['winner_participant_id'];
+        $winners[] = $winnerId;
+        $losers[] = $winnerId === (int) $match['participant_a_id'] ? (int) $match['participant_b_id'] : (int) $match['participant_a_id'];
+    }
+
+    $nextOrder = next_match_order($matches);
+    $fieldCount = max(1, (int) find_tournament($tournamentId)['number_of_fields']);
+    $pdo = db();
+    insert_match($pdo, $tournamentId, null, 'final', 'Finale', (($nextOrder - 1) % $fieldCount) + 1, $winners[0], $winners[1], $nextOrder);
+    insert_match($pdo, $tournamentId, null, 'final', 'Petite finale', ($nextOrder % $fieldCount) + 1, $losers[0], $losers[1], $nextOrder + 1);
+    flash('Finale et petite finale generees.');
+}
+
+function next_match_order(array $matches): int
+{
+    $orders = array_map(static fn(array $match): int => (int) $match['scheduled_order'], $matches);
+    return $orders ? max($orders) + 1 : 1;
 }
 
 function matches_for_tournament(int $tournamentId): array

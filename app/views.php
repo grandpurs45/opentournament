@@ -45,10 +45,19 @@ function create_tournament_view(): void
     foreach (plugins() as $plugin) {
         echo '<option value="' . h($plugin['key']) . '">' . h($plugin['name']) . ' - ' . h($plugin['description']) . '</option>';
     }
-    echo '</select></label><label>Format<select name="format"><option value="pools">Poules uniquement</option><option value="pools_finals">Poules + finales (roadmap)</option></select></label>';
+    echo '</select></label><label>Format<select name="format">' . format_options('pools') . '</select></label>';
     echo '<label>Nombre de terrains<input required type="number" min="1" name="number_of_fields"></label>';
     echo '<div class="actions"><button class="button primary" type="submit">Creer</button><a class="button" href="/">Annuler</a></div></form>';
     layout('Nouveau tournoi', ob_get_clean());
+}
+
+function format_options(string $selected): string
+{
+    $html = '';
+    foreach (tournament_formats() as $key => $format) {
+        $html .= '<option value="' . h($key) . '"' . ($selected === $key ? ' selected' : '') . '>' . h($format['label']) . ' - ' . h($format['description']) . '</option>';
+    }
+    return $html;
 }
 
 function admin_nav(int $id, string $active): string
@@ -114,17 +123,21 @@ function admin_overview_view(int $id): void
     $mobileUrl = app_url('/t/' . $id);
     $settings = $t['settings_array'];
     ob_start();
-    echo '<section class="page-head"><div><h1>' . h($t['name']) . '</h1><p>' . h($t['event_date']) . ' - ' . h(plugin($t['plugin_key'])['name']) . ' - ' . (int) $t['number_of_fields'] . ' terrain(s)</p></div><div class="actions"><a class="button" href="/display/' . $id . '" target="_blank" rel="noopener">Vue TV</a><a class="button" href="/t/' . $id . '">Vue mobile</a></div></section>';
+    echo '<section class="page-head"><div><h1>' . h($t['name']) . '</h1><p>' . h($t['event_date']) . ' - ' . h(plugin($t['plugin_key'])['name']) . ' - ' . h(tournament_format_label($t['format'])) . ' - ' . (int) $t['number_of_fields'] . ' terrain(s)</p></div><div class="actions"><a class="button" href="/display/' . $id . '" target="_blank" rel="noopener">Vue TV</a><a class="button" href="/t/' . $id . '">Vue mobile</a></div></section>';
     echo admin_nav($id, 'overview');
     echo '<section class="stats"><div><strong>' . count($participants) . '</strong><span>Participants</span></div><div><strong>' . count($pools) . '</strong><span>Poules</span></div><div><strong>' . count($matches) . '</strong><span>Matchs</span></div><div><strong>' . count($finished) . '</strong><span>Termines</span></div></section>';
     echo '<section class="panel mobile-link"><div><h2>Acces mobile</h2><p><a href="/t/' . $id . '">' . h($mobileUrl) . '</a></p></div><img class="qr-image" src="/qr/' . $id . '" alt="QR Code acces mobile"></section>';
     echo '<section class="grid two"><form class="panel form" method="post" action="/admin/' . $id . '/settings"><h2>Configuration</h2>';
     echo '<label>Nom<input required name="name" value="' . h($t['name']) . '"></label><label>Date<input required type="date" name="event_date" value="' . h($t['event_date']) . '"></label>';
-    echo '<label>Format<select name="format"><option value="pools"' . ($t['format'] === 'pools' ? ' selected' : '') . '>Poules uniquement</option><option value="pools_finals"' . ($t['format'] === 'pools_finals' ? ' selected' : '') . '>Poules + finales (roadmap)</option></select></label>';
+    echo '<label>Format<select name="format">' . format_options($t['format']) . '</select></label>';
     echo '<label>Nombre de terrains<input required type="number" min="1" name="number_of_fields" value="' . (int) $t['number_of_fields'] . '"></label>';
     echo '<label>Score cible<input type="number" min="0" name="targetScore" value="' . h($settings['targetScore'] ?? '') . '"></label><label>Points victoire<input type="number" min="0" name="winPoints" value="' . h($settings['winPoints'] ?? '') . '"></label><label>Points defaite<input type="number" min="0" name="lossPoints" value="' . h($settings['lossPoints'] ?? '') . '"></label>';
     echo '<button class="button primary">Enregistrer</button></form>';
-    echo '<div class="panel flow"><h2>Actions</h2><form class="confirm-action" method="post" action="/admin/' . $id . '/generate-pools"><label><input type="checkbox" name="force" value="1"> Regenerer meme si des poules ou matchs existent</label><button class="button primary">Generer les poules</button></form><form class="confirm-action" method="post" action="/admin/' . $id . '/generate-matches"><label><input type="checkbox" name="force" value="1"> Regenerer meme si des matchs existent</label><button class="button primary">Generer les matchs</button></form><div class="actions wrap"><a class="button" href="/export/' . $id . '/participants">Export participants</a><a class="button" href="/export/' . $id . '/matches">Export matchs</a><a class="button" href="/export/' . $id . '/standings">Export classements</a></div><form class="confirm-action" method="post" action="/admin/' . $id . '/delete"><label><input required type="checkbox" name="confirm_delete" value="1"> Confirmer la suppression definitive</label><button class="button danger-button">Supprimer le tournoi</button></form></div></section>';
+    echo '<div class="panel flow"><h2>Actions</h2><form class="confirm-action" method="post" action="/admin/' . $id . '/generate-pools"><label><input type="checkbox" name="force" value="1"> Regenerer meme si des poules ou matchs existent</label><button class="button primary">Generer les poules</button></form><form class="confirm-action" method="post" action="/admin/' . $id . '/generate-matches"><label><input type="checkbox" name="force" value="1"> Regenerer meme si des matchs existent</label><button class="button primary">Generer les matchs</button></form>';
+    if ($t['format'] === 'pools_finals') {
+        echo '<form class="confirm-action" method="post" action="/admin/' . $id . '/generate-finals"><p class="help">Apres les poules terminees : genere les demi-finales. Apres les demi-finales : genere la finale et la petite finale.</p><button class="button primary">Generer les phases finales</button></form>';
+    }
+    echo '<div class="actions wrap"><a class="button" href="/export/' . $id . '/participants">Export participants</a><a class="button" href="/export/' . $id . '/matches">Export matchs</a><a class="button" href="/export/' . $id . '/standings">Export classements</a></div><form class="confirm-action" method="post" action="/admin/' . $id . '/delete"><label><input required type="checkbox" name="confirm_delete" value="1"> Confirmer la suppression definitive</label><button class="button danger-button">Supprimer le tournoi</button></form></div></section>';
     layout($t['name'], ob_get_clean());
 }
 
@@ -153,11 +166,12 @@ function matches_view(int $id): void
     $rows = matches_for_tournament($id);
     ob_start();
     echo '<section class="page-head"><div><h1>Matchs</h1><p>Saisie rapide des scores.</p></div></section>' . admin_nav($id, 'matches');
-    echo '<section class="panel"><table><thead><tr><th>#</th><th>Poule</th><th>Terrain</th><th>Match</th><th>Score</th><th>Saisie</th><th>Statut</th></tr></thead><tbody>';
+    echo '<section class="panel"><table><thead><tr><th>#</th><th>Phase</th><th>Terrain</th><th>Match</th><th>Score</th><th>Saisie</th><th>Statut</th></tr></thead><tbody>';
     foreach ($rows as $row) {
         $displayScoreA = $row['draft_score_a'] ?? $row['score_a'] ?? '';
         $displayScoreB = $row['draft_score_b'] ?? $row['score_b'] ?? '';
-        echo '<tr><td>' . (int) $row['scheduled_order'] . '</td><td>' . h($row['pool_name']) . '</td><td>' . (int) $row['field_number'] . '</td><td>' . h($row['participant_a_name']) . ' vs ' . h($row['participant_b_name']) . '</td>';
+        $phaseLabel = $row['phase'] === 'final' ? $row['round'] : $row['pool_name'];
+        echo '<tr><td>' . (int) $row['scheduled_order'] . '</td><td>' . h($phaseLabel) . '</td><td>' . (int) $row['field_number'] . '</td><td>' . h($row['participant_a_name']) . ' vs ' . h($row['participant_b_name']) . '</td>';
         echo '<td><form class="score-form" data-autosave-score data-autosave-url="/admin/' . $id . '/matches/' . (int) $row['id'] . '/draft" method="post" action="/admin/' . $id . '/matches/' . (int) $row['id'] . '/score"><input type="number" min="0" name="score_a" value="' . h($displayScoreA) . '"><span>-</span><input type="number" min="0" name="score_b" value="' . h($displayScoreB) . '"><button class="button small">Valider</button><small class="autosave-state" aria-live="polite"></small></form>';
         if ($row['status'] === 'finished') {
             echo '<form method="post" action="/admin/' . $id . '/matches/' . (int) $row['id'] . '/clear"><button class="link danger">Effacer</button></form>';

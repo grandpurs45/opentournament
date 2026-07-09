@@ -11,6 +11,8 @@ Status: in progress.
 - Participant management.
 - Pool generation.
 - Match generation.
+- Full round-robin format.
+- Pools with semi-finals, final and third-place match.
 - Score entry.
 - Automatic standings.
 - Simple TV display.
@@ -20,7 +22,7 @@ Status: in progress.
 
 - QR Code generation.
 - Player mobile team selection.
-- Final brackets.
+- Advanced final brackets.
 - Podium.
 - CSV export improvements.
 - Better admin ergonomics.
