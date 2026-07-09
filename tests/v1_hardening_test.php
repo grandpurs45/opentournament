@@ -39,6 +39,11 @@ import_participants($tournamentId, implode(PHP_EOL, [
 $imported = participants($tournamentId);
 assert_true($imported[0]['players'] === 'Alice' . PHP_EOL . 'Bob', 'Bulk import should parse player first names.');
 
+ob_start();
+participants_view($tournamentId);
+$participantsHtml = ob_get_clean();
+assert_true(str_contains($participantsHtml, 'color-palette') && str_contains($participantsHtml, 'data-color="#2f80ed"'), 'Participants view should render a team color palette.');
+
 generate_pools($tournamentId);
 assert_true(count(pools($tournamentId)) === 2, '8 teams should generate 2 pools.');
 

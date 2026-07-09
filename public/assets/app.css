@@ -148,6 +148,39 @@ textarea {
   resize: vertical;
 }
 
+.color-palette {
+  display: grid;
+  grid-template-columns: repeat(8, 28px);
+  gap: 8px;
+  align-items: center;
+}
+
+.color-swatch {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 2px solid #ffffff;
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px var(--line);
+  cursor: pointer;
+}
+
+.color-swatch:hover,
+.color-swatch:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--primary);
+}
+
+.color-swatch span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
 .button,
 button.button {
   border: 1px solid var(--line);
@@ -1134,5 +1167,9 @@ th {
   table {
     display: block;
     overflow-x: auto;
+  }
+
+  .color-palette {
+    grid-template-columns: repeat(4, 28px);
   }
 }

@@ -23,6 +23,7 @@ The project follows semantic versioning: `MAJOR.MINOR.PATCH`.
 - Fixed final bracket score alignment on narrow TV cards.
 - Changed final bracket rendering to a connected graphical bracket layout.
 - Added a completed-tournament public view with podium and final standings after third place.
+- Added a limited color palette for team color selection.
 
 ## [0.2.3] - 2026-07-08
 

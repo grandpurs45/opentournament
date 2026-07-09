@@ -149,7 +149,7 @@ function participants_view(int $id): void
     $rows = participants($id);
     ob_start();
     echo '<section class="page-head"><div><h1>Participants</h1><p>' . h($t['name']) . '</p></div></section>' . admin_nav($id, 'participants');
-    echo '<section class="grid two"><div class="flow"><form class="panel form" method="post"><h2>Ajouter</h2><label>Nom<input required name="name"></label><label>Type<select name="type"><option value="team">Equipe</option><option value="player">Joueur</option></select></label><label>Joueurs<textarea name="players" rows="3" placeholder="Un nom par ligne"></textarea></label><label>Couleur<input name="color" placeholder="#2f80ed"></label><label>Emoji<input name="emoji" maxlength="8" placeholder="OT"></label><button class="button primary">Ajouter</button></form>';
+    echo '<section class="grid two"><div class="flow"><form class="panel form" method="post"><h2>Ajouter</h2><label>Nom<input required name="name"></label><label>Type<select name="type"><option value="team">Equipe</option><option value="player">Joueur</option></select></label><label>Joueurs<textarea name="players" rows="3" placeholder="Un nom par ligne"></textarea></label>' . color_palette_field() . '<label>Emoji<input name="emoji" maxlength="8" placeholder="OT"></label><button class="button primary">Ajouter</button></form>';
     echo '<form class="panel form" method="post" action="/admin/' . $id . '/participants/import"><h2>Import rapide</h2><label>Equipes<textarea required name="participants" rows="8" placeholder="Equipe 1; Alice; Bob&#10;Equipe 2; Chloe; David&#10;Equipe 3"></textarea></label><p class="help">Format : une equipe par ligne. Ajoutez les prenoms apres le premier point-virgule.</p><button class="button primary">Importer</button></form></div>';
     echo '<div class="panel"><h2>Liste</h2><table><thead><tr><th>Nom</th><th>Type</th><th>Joueurs</th><th></th></tr></thead><tbody>';
     foreach ($rows as $row) {
@@ -160,6 +160,36 @@ function participants_view(int $id): void
     }
     echo '</tbody></table></div></section>';
     layout('Participants', ob_get_clean());
+}
+
+function color_palette_field(): string
+{
+    $colors = ['#2f80ed', '#136f63', '#f2994a', '#eb5757', '#9b51e0', '#00a8a8', '#f2c94c', '#34495e'];
+    $html = '<label>Couleur<input name="color" placeholder="#2f80ed" data-color-input></label><div class="color-palette" aria-label="Palette de couleurs">';
+    foreach ($colors as $color) {
+        $html .= '<button type="button" class="color-swatch" data-color="' . h($color) . '" style="background: ' . h($color) . '" title="' . h($color) . '"><span>' . h($color) . '</span></button>';
+    }
+    return $html . '</div>' . color_palette_script();
+}
+
+function color_palette_script(): string
+{
+    return <<<'HTML'
+<script>
+document.querySelectorAll('.color-palette').forEach(function (palette) {
+  var input = palette.previousElementSibling ? palette.previousElementSibling.querySelector('[data-color-input]') : null;
+  if (!input) {
+    return;
+  }
+  palette.querySelectorAll('[data-color]').forEach(function (button) {
+    button.addEventListener('click', function () {
+      input.value = button.dataset.color;
+      input.focus();
+    });
+  });
+});
+</script>
+HTML;
 }
 
 function matches_view(int $id): void
