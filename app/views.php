@@ -405,7 +405,7 @@ function final_bracket_panel(array $bracket): string
 
 function bracket_team_row(string $name, mixed $score, bool $winner): string
 {
-    return '<p class="' . ($winner ? 'winner' : '') . '"><span>' . h($name) . '</span><strong>' . h($score ?? '-') . '</strong></p>';
+    return '<p class="' . ($winner ? 'winner' : '') . '"><span class="team-name">' . h($name) . '</span><strong class="team-score">' . h($score ?? '-') . '</strong></p>';
 }
 
 function compact_results_table(array $matches): string

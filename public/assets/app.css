@@ -496,12 +496,22 @@ th {
 }
 
 .bracket-match p {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 42px;
   gap: 12px;
   align-items: center;
   padding: 7px 0;
   border-top: 1px solid var(--line);
+}
+
+.bracket-match .team-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bracket-match .team-score {
+  text-align: right;
 }
 
 .bracket-match p.winner {
@@ -782,6 +792,8 @@ th {
 }
 
 .display .bracket-match p {
+  grid-template-columns: minmax(0, 1fr) 32px;
+  gap: 6px;
   padding: 4px 0;
   border-top-color: #2e424e;
   color: #f8fbfc;
