@@ -8,6 +8,7 @@ The first implementation focuses on running a real Molkky tournament while keepi
 
 - Create tournaments.
 - Add teams or players.
+- Generate random teams from a player list.
 - Pick team colors from a small palette.
 - Generate balanced pools.
 - Generate round-robin matches.

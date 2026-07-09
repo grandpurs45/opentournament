@@ -4,7 +4,28 @@ All notable changes to OpenTournament will be documented in this file.
 
 The project follows semantic versioning: `MAJOR.MINOR.PATCH`.
 
-## [Unreleased]
+## [0.4.0] - 2026-07-09
+
+### Changed
+- Replaced public general standings with pool standings and highlighted temporary qualifiers.
+- Selected temporary finalists across all pools instead of only the first two pools.
+- Displayed points and score difference when a temporary qualifier is selected as best runner-up.
+- Improved TV pool standings column sizing so score columns remain readable.
+- Displayed upcoming final-stage matches as a compact bracket on the TV view.
+- Automatically generate semi-finals, then final and third-place match, after validating the required scores.
+- Tightened the compact TV final bracket layout.
+- Removed duplicated final bracket from the TV view and increased TV text sizing.
+- Made the completed-tournament TV podium larger and more visually distinct.
+- Rebalanced completed TV layout so the final ranking fits below the podium.
+- Displayed team player names alongside team names across matches, standings, brackets and podiums.
+- Improved TV podium readability when showing player names.
+- Replaced completed TV final ranking table with compact cards to show more teams.
+- Removed unused completed-TV grid space so the final ranking is not cut off at the bottom.
+- Improved completed mobile final ranking cards so team names and score details stay readable.
+
+### Added
+- Added random team generation from a pasted player list or existing player participants.
+- Added participant editing for team/player names, type, player list, color and emoji.
 
 ## [0.3.0] - 2026-07-09
 

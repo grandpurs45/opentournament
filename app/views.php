@@ -19,6 +19,21 @@ function layout(string $title, string $content, string $class = ''): void
     echo '</body></html>';
 }
 
+function participant_label(string $name, ?string $players = ''): string
+{
+    $players = trim((string) $players);
+    $html = '<span class="participant-label"><strong>' . h($name) . '</strong>';
+    if ($players !== '') {
+        $html .= '<small>' . h(preg_replace('/\s*\R+\s*/', ', ', $players) ?? $players) . '</small>';
+    }
+    return $html . '</span>';
+}
+
+function match_participants_label(array $match): string
+{
+    return '<span class="match-participants">' . participant_label($match['participant_a_name'], $match['participant_a_players'] ?? '') . '<em>vs</em>' . participant_label($match['participant_b_name'], $match['participant_b_players'] ?? '') . '</span>';
+}
+
 function dashboard_view(): void
 {
     $rows = all_tournaments();
@@ -137,7 +152,7 @@ function admin_overview_view(int $id): void
     echo '<button class="button primary">Enregistrer</button></form>';
     echo '<div class="panel flow"><h2>Actions</h2><form class="confirm-action" method="post" action="/admin/' . $id . '/generate-pools"><label><input type="checkbox" name="force" value="1"> Regenerer meme si des poules ou matchs existent</label><button class="button primary">Generer les poules</button></form><form class="confirm-action" method="post" action="/admin/' . $id . '/generate-matches"><label><input type="checkbox" name="force" value="1"> Regenerer meme si des matchs existent</label><button class="button primary">Generer les matchs</button></form>';
     if ($t['format'] === 'pools_finals') {
-        echo '<form class="confirm-action" method="post" action="/admin/' . $id . '/generate-finals"><p class="help">Apres les poules terminees : genere les demi-finales. Apres les demi-finales : genere la finale et la petite finale.</p><button class="button primary">Generer les phases finales</button></form>';
+        echo '<form class="confirm-action" method="post" action="/admin/' . $id . '/generate-finals"><p class="help">Les phases finales se generent automatiquement apres validation du dernier score requis. Ce bouton sert de secours si besoin.</p><button class="button">Forcer la generation des phases finales</button></form>';
     }
     echo '<div class="actions wrap"><a class="button" href="/export/' . $id . '/participants">Export participants</a><a class="button" href="/export/' . $id . '/matches">Export matchs</a><a class="button" href="/export/' . $id . '/standings">Export classements</a></div><form class="confirm-action" method="post" action="/admin/' . $id . '/delete"><label><input required type="checkbox" name="confirm_delete" value="1"> Confirmer la suppression definitive</label><button class="button danger-button">Supprimer le tournoi</button></form></div></section>';
     layout($t['name'], ob_get_clean());
@@ -150,16 +165,33 @@ function participants_view(int $id): void
     ob_start();
     echo '<section class="page-head"><div><h1>Participants</h1><p>' . h($t['name']) . '</p></div></section>' . admin_nav($id, 'participants');
     echo '<section class="grid two"><div class="flow"><form class="panel form" method="post"><h2>Ajouter</h2><label>Nom<input required name="name"></label><label>Type<select name="type"><option value="team">Equipe</option><option value="player">Joueur</option></select></label><label>Joueurs<textarea name="players" rows="3" placeholder="Un nom par ligne"></textarea></label>' . color_palette_field() . '<label>Emoji<input name="emoji" maxlength="8" placeholder="OT"></label><button class="button primary">Ajouter</button></form>';
-    echo '<form class="panel form" method="post" action="/admin/' . $id . '/participants/import"><h2>Import rapide</h2><label>Equipes<textarea required name="participants" rows="8" placeholder="Equipe 1; Alice; Bob&#10;Equipe 2; Chloe; David&#10;Equipe 3"></textarea></label><p class="help">Format : une equipe par ligne. Ajoutez les prenoms apres le premier point-virgule.</p><button class="button primary">Importer</button></form></div>';
-    echo '<div class="panel"><h2>Liste</h2><table><thead><tr><th>Nom</th><th>Type</th><th>Joueurs</th><th></th></tr></thead><tbody>';
+    echo '<form class="panel form" method="post" action="/admin/' . $id . '/participants/import"><h2>Import rapide</h2><label>Equipes<textarea required name="participants" rows="8" placeholder="Equipe 1; Alice; Bob&#10;Equipe 2; Chloe; David&#10;Equipe 3"></textarea></label><p class="help">Format : une equipe par ligne. Ajoutez les prenoms apres le premier point-virgule.</p><button class="button primary">Importer</button></form>';
+    echo '<form class="panel form" method="post" action="/admin/' . $id . '/participants/random-teams"><h2>Equipes aleatoires</h2><label>Joueurs<textarea name="players" rows="8" placeholder="Alice&#10;Bob&#10;Chloe&#10;David"></textarea></label><p class="help">Liste facultative. Laissez vide pour convertir les participants deja ajoutes en type Joueur. Separateurs acceptes : ligne, virgule ou point-virgule.</p><label>Joueurs par equipe<input type="number" min="1" name="team_size" value="2"></label><label>Prefixe des equipes<input name="team_prefix" value="Equipe"></label><button class="button primary">Generer les equipes</button></form></div>';
+    echo '<div class="panel participant-list"><h2>Liste</h2>';
     foreach ($rows as $row) {
-        echo '<tr><td>' . h($row['emoji'] ? $row['emoji'] . ' ' . $row['name'] : $row['name']) . '</td><td>' . h($row['type']) . '</td><td>' . nl2br(h($row['players'])) . '</td><td><form method="post" action="/admin/' . $id . '/participants/delete"><input type="hidden" name="participant_id" value="' . (int) $row['id'] . '"><button class="link danger">Supprimer</button></form></td></tr>';
+        echo participant_edit_form($id, $row);
     }
     if (!$rows) {
-        echo '<tr><td colspan="4" class="empty">Ajoutez les equipes ou joueurs.</td></tr>';
+        echo '<p class="empty compact">Ajoutez les equipes ou joueurs.</p>';
     }
-    echo '</tbody></table></div></section>';
+    echo '</div></section>';
     layout('Participants', ob_get_clean());
+}
+
+function participant_edit_form(int $tournamentId, array $row): string
+{
+    $selectedTeam = $row['type'] === 'team' ? ' selected' : '';
+    $selectedPlayer = $row['type'] === 'player' ? ' selected' : '';
+    return '<form class="participant-edit" method="post" action="/admin/' . $tournamentId . '/participants/update">'
+        . '<input type="hidden" name="participant_id" value="' . (int) $row['id'] . '">'
+        . '<label>Nom<input required name="name" value="' . h($row['name']) . '"></label>'
+        . '<label>Type<select name="type"><option value="team"' . $selectedTeam . '>Equipe</option><option value="player"' . $selectedPlayer . '>Joueur</option></select></label>'
+        . '<label>Joueurs<textarea name="players" rows="2">' . h($row['players']) . '</textarea></label>'
+        . '<label>Couleur<input name="color" value="' . h($row['color']) . '" placeholder="#2f80ed"></label>'
+        . '<label>Emoji<input name="emoji" maxlength="8" value="' . h($row['emoji']) . '" placeholder="OT"></label>'
+        . '<div class="participant-edit-actions"><button class="button primary">Enregistrer</button><button class="link danger" form="delete-participant-' . (int) $row['id'] . '">Supprimer</button></div>'
+        . '</form>'
+        . '<form id="delete-participant-' . (int) $row['id'] . '" method="post" action="/admin/' . $tournamentId . '/participants/delete"><input type="hidden" name="participant_id" value="' . (int) $row['id'] . '"></form>';
 }
 
 function color_palette_field(): string
@@ -203,7 +235,7 @@ function matches_view(int $id): void
         $displayScoreA = $row['draft_score_a'] ?? $row['score_a'] ?? '';
         $displayScoreB = $row['draft_score_b'] ?? $row['score_b'] ?? '';
         $phaseLabel = $row['phase'] === 'final' ? $row['round'] : $row['pool_name'];
-        echo '<tr><td>' . (int) $row['scheduled_order'] . '</td><td>' . h($phaseLabel) . '</td><td>' . (int) $row['field_number'] . '</td><td>' . h($row['participant_a_name']) . ' vs ' . h($row['participant_b_name']) . '</td>';
+        echo '<tr><td>' . (int) $row['scheduled_order'] . '</td><td>' . h($phaseLabel) . '</td><td>' . (int) $row['field_number'] . '</td><td>' . match_participants_label($row) . '</td>';
         echo '<td>' . match_score_form($id, $row, $displayScoreA, $displayScoreB, 'matches');
         if ($row['status'] === 'finished') {
             echo '<form method="post" action="/admin/' . $id . '/matches/' . (int) $row['id'] . '/clear"><input type="hidden" name="return_to" value="matches"><button class="link danger">Effacer</button></form>';
@@ -245,7 +277,7 @@ function fields_view(int $id): void
             $phaseLabel = $current['phase'] === 'final' ? $current['round'] : $current['pool_name'];
             $displayScoreA = $current['draft_score_a'] ?? $current['score_a'] ?? '';
             $displayScoreB = $current['draft_score_b'] ?? $current['score_b'] ?? '';
-            echo '<div class="field-current"><span class="badge badge-running">En cours</span><strong>' . h($current['participant_a_name']) . ' vs ' . h($current['participant_b_name']) . '</strong><small>' . h($phaseLabel) . ' - Match #' . (int) $current['scheduled_order'] . '</small>' . match_score_form($id, $current, $displayScoreA, $displayScoreB, 'fields') . '</div>';
+            echo '<div class="field-current"><span class="badge badge-running">En cours</span><strong>' . match_participants_label($current) . '</strong><small>' . h($phaseLabel) . ' - Match #' . (int) $current['scheduled_order'] . '</small>' . match_score_form($id, $current, $displayScoreA, $displayScoreB, 'fields') . '</div>';
         } else {
             echo '<p class="empty compact">Aucun match restant.</p>';
         }
@@ -253,7 +285,7 @@ function fields_view(int $id): void
         echo '<div class="field-list"><h3>A venir</h3>';
         foreach (array_slice($remaining, 1, 4) as $match) {
             $phaseLabel = $match['phase'] === 'final' ? $match['round'] : $match['pool_name'];
-            echo '<p><span>' . h($phaseLabel) . '</span><strong>' . h($match['participant_a_name']) . ' vs ' . h($match['participant_b_name']) . '</strong></p>';
+            echo '<p><span>' . h($phaseLabel) . '</span><strong>' . match_participants_label($match) . '</strong></p>';
         }
         if (count($remaining) <= 1) {
             echo '<p class="muted">Aucun autre match planifie.</p>';
@@ -262,7 +294,7 @@ function fields_view(int $id): void
 
         echo '<div class="field-list"><h3>Derniers resultats</h3>';
         foreach (array_slice(array_reverse($finished), 0, 3) as $match) {
-            echo '<p><span>#' . (int) $match['scheduled_order'] . '</span><strong>' . h($match['participant_a_name']) . ' ' . h($match['score_a']) . '-' . h($match['score_b']) . ' ' . h($match['participant_b_name']) . '</strong></p>';
+            echo '<p><span>#' . (int) $match['scheduled_order'] . '</span><strong>' . participant_label($match['participant_a_name'], $match['participant_a_players'] ?? '') . ' <em>' . h($match['score_a']) . '-' . h($match['score_b']) . '</em> ' . participant_label($match['participant_b_name'], $match['participant_b_players'] ?? '') . '</strong></p>';
         }
         if (!$finished) {
             echo '<p class="muted">Aucun resultat.</p>';
@@ -341,7 +373,7 @@ function standings_table(array $rows): string
 {
     $html = '<table><thead><tr><th>#</th><th>Participant</th><th>MJ</th><th>V</th><th>D</th><th>Pts</th><th>Pour</th><th>Contre</th><th>Diff</th></tr></thead><tbody>';
     foreach ($rows as $i => $row) {
-        $html .= '<tr><td>' . ($i + 1) . '</td><td>' . h($row['participant']) . '</td><td>' . (int) $row['played'] . '</td><td>' . (int) $row['wins'] . '</td><td>' . (int) $row['losses'] . '</td><td>' . (int) $row['ranking_points'] . '</td><td>' . (int) $row['scored'] . '</td><td>' . (int) $row['conceded'] . '</td><td>' . (int) $row['diff'] . '</td></tr>';
+        $html .= '<tr><td>' . ($i + 1) . '</td><td>' . participant_label($row['participant'], $row['players'] ?? '') . '</td><td>' . (int) $row['played'] . '</td><td>' . (int) $row['wins'] . '</td><td>' . (int) $row['losses'] . '</td><td>' . (int) $row['ranking_points'] . '</td><td>' . (int) $row['scored'] . '</td><td>' . (int) $row['conceded'] . '</td><td>' . (int) $row['diff'] . '</td></tr>';
     }
     if (!$rows) {
         $html .= '<tr><td colspan="9" class="empty">Aucun classement disponible.</td></tr>';
@@ -408,14 +440,61 @@ function public_qualified_panel(array $qualified): string
     }
     $items = '';
     foreach ($qualified as $team) {
-        $items .= '<li><span>' . h($team['pool_name']) . ' #' . (int) $team['rank'] . '</span><strong>' . h($team['participant']) . '</strong><em>' . (int) $team['points'] . ' pts</em></li>';
+        $detail = (int) $team['points'] . ' pts, diff ' . signed_number((int) $team['diff']);
+        $items .= '<li><span>' . h($team['pool_name']) . ' #' . (int) $team['rank'] . '</span>' . participant_label($team['participant'], $team['players'] ?? '') . '<em>' . h($detail) . '</em></li>';
     }
     return '<div class="panel public-qualified"><h2>Equipes qualifiees</h2><p>En attente de generation des phases finales.</p><ul>' . $items . '</ul></div>';
 }
 
+function signed_number(int $value): string
+{
+    return $value > 0 ? '+' . $value : (string) $value;
+}
+
+function qualifier_badge(array $qualified): string
+{
+    if (!$qualified) {
+        return '';
+    }
+
+    if ((int) $qualified['rank'] > 1) {
+        return '<span class="qualifier-badge qualifier-badge-detail">Meilleur 2e - ' . (int) $qualified['points'] . ' pts / diff ' . h(signed_number((int) $qualified['diff'])) . '</span>';
+    }
+
+    return '<span class="qualifier-badge">Q provisoire</span>';
+}
+
+function public_pool_standings_panel(int $id, array $summary): string
+{
+    $pools = pools($id);
+    if (!$pools) {
+        return '<div class="panel"><h2>Classement general</h2>' . standings_table(array_slice(standings($id), 0, 8)) . '</div>';
+    }
+
+    $qualifiedById = [];
+    foreach ($summary['qualified_teams'] as $team) {
+        $qualifiedById[(int) $team['participant_id']] = $team;
+    }
+    $html = '<div class="panel public-pool-standings"><h2>Classement par poule</h2><div class="pool-standings-grid">';
+    foreach ($pools as $pool) {
+        $rows = standings($id, (int) $pool['id']);
+        $html .= '<section class="pool-ranking"><h3>' . h($pool['name']) . '</h3><table class="compact-standings"><thead><tr><th>#</th><th>Equipe</th><th>MJ</th><th>Pts</th><th>Diff</th><th></th></tr></thead><tbody>';
+        foreach ($rows as $rank => $row) {
+            $qualified = $qualifiedById[(int) $row['participant_id']] ?? [];
+            $isTemporaryQualified = $qualified !== [];
+            $html .= '<tr class="' . ($isTemporaryQualified ? 'is-temporary-qualified' : '') . '"><td>' . ($rank + 1) . '</td><td>' . participant_label($row['participant'], $row['players'] ?? '') . '</td><td>' . (int) $row['played'] . '</td><td>' . (int) $row['ranking_points'] . '</td><td>' . signed_number((int) $row['diff']) . '</td><td>' . qualifier_badge($qualified) . '</td></tr>';
+        }
+        if (!$rows) {
+            $html .= '<tr><td colspan="6" class="empty">Aucun classement disponible.</td></tr>';
+        }
+        $html .= '</tbody></table></section>';
+    }
+    return $html . '</div></div>';
+}
+
 function public_finished_panel(array $summary): string
 {
-    return '<section class="finished-view">' . podium_panel($summary['podium']) . '<div class="panel final-ranking"><h2>Classement final</h2>' . final_standings_table($summary['final_standings'], 4) . '</div></section>';
+    return '<section class="finished-view completed-display">' . podium_panel($summary['podium']) . '<div class="panel final-ranking"><h2>Classement final</h2>' . final_standings_cards($summary['final_standings'], 4) . '</div></section>';
 }
 
 function podium_panel(array $podium): string
@@ -427,7 +506,7 @@ function podium_panel(array $podium): string
     $order = [1 => $podium[0] ?? null, 2 => $podium[1] ?? null, 3 => $podium[2] ?? null];
     $html = '<div class="panel podium"><h2>Podium</h2><div class="podium-steps">';
     foreach ($order as $place => $row) {
-        $html .= '<article class="podium-place podium-place-' . $place . '"><span>' . $place . '</span><strong>' . h($row['participant'] ?? '-') . '</strong></article>';
+        $html .= '<article class="podium-place podium-place-' . $place . '"><span class="podium-rank">' . $place . '</span>' . participant_label($row['participant'] ?? '-', $row['players'] ?? '') . '</article>';
     }
     return $html . '</div></div>';
 }
@@ -436,12 +515,27 @@ function final_standings_table(array $rows, int $startRank): string
 {
     $html = '<table><thead><tr><th>#</th><th>Participant</th><th>MJ</th><th>V</th><th>D</th><th>Pts</th><th>Diff</th></tr></thead><tbody>';
     foreach ($rows as $i => $row) {
-        $html .= '<tr><td>' . ($startRank + $i) . '</td><td>' . h($row['participant']) . '</td><td>' . (int) $row['played'] . '</td><td>' . (int) $row['wins'] . '</td><td>' . (int) $row['losses'] . '</td><td>' . (int) $row['ranking_points'] . '</td><td>' . (int) $row['diff'] . '</td></tr>';
+        $html .= '<tr><td>' . ($startRank + $i) . '</td><td>' . participant_label($row['participant'], $row['players'] ?? '') . '</td><td>' . (int) $row['played'] . '</td><td>' . (int) $row['wins'] . '</td><td>' . (int) $row['losses'] . '</td><td>' . (int) $row['ranking_points'] . '</td><td>' . (int) $row['diff'] . '</td></tr>';
     }
     if (!$rows) {
         $html .= '<tr><td colspan="7" class="empty">Aucune equipe au-dela du podium.</td></tr>';
     }
     return $html . '</tbody></table>';
+}
+
+function final_standings_cards(array $rows, int $startRank): string
+{
+    if (!$rows) {
+        return '<p class="empty compact">Aucune equipe au-dela du podium.</p>';
+    }
+
+    $html = '<div class="final-standing-cards">';
+    foreach ($rows as $i => $row) {
+        $html .= '<article class="final-standing-card"><span>#' . ($startRank + $i) . '</span>'
+            . participant_label($row['participant'], $row['players'] ?? '')
+            . '<em>' . (int) $row['ranking_points'] . ' pts / diff ' . signed_number((int) $row['diff']) . '</em></article>';
+    }
+    return $html . '</div>';
 }
 
 function final_bracket_panel(array $bracket): string
@@ -457,8 +551,8 @@ function final_bracket_panel(array $bracket): string
         $html .= '<section class="bracket-round bracket-count-' . count($round['matches']) . ($hasNextRound ? ' has-next-round' : '') . '"><h3>' . h($round['round']) . '</h3><div class="bracket-round-matches">';
         foreach ($round['matches'] as $matchIndex => $match) {
             $html .= '<article class="bracket-match"><small>Match #' . (int) $match['scheduled_order'] . ' - Terrain ' . (int) $match['field_number'] . '</small>'
-                . bracket_team_row($match['participant_a_name'], $match['score_a'], (int) $match['winner_participant_id'] === (int) $match['participant_a_id'])
-                . bracket_team_row($match['participant_b_name'], $match['score_b'], (int) $match['winner_participant_id'] === (int) $match['participant_b_id'])
+                . bracket_team_row($match['participant_a_name'], $match['participant_a_players'] ?? '', $match['score_a'], (int) $match['winner_participant_id'] === (int) $match['participant_a_id'])
+                . bracket_team_row($match['participant_b_name'], $match['participant_b_players'] ?? '', $match['score_b'], (int) $match['winner_participant_id'] === (int) $match['participant_b_id'])
                 . '</article>';
         }
         $html .= '</div></section>';
@@ -466,16 +560,50 @@ function final_bracket_panel(array $bracket): string
     return $html . '</div></div>';
 }
 
-function bracket_team_row(string $name, mixed $score, bool $winner): string
+function final_next_matches_panel(array $bracket, array $matches): string
 {
-    return '<p class="' . ($winner ? 'winner' : '') . '"><span class="team-name">' . h($name) . '</span><strong class="team-score">' . h($score ?? '-') . '</strong></p>';
+    if (!$bracket) {
+        return next_matches_table($matches);
+    }
+
+    $html = '<div class="panel final-next-bracket"><h2>Prochains matchs</h2><div class="next-bracket-grid">';
+    foreach ($bracket as $round) {
+        $html .= '<section class="next-bracket-round"><h3>' . h($round['round']) . '</h3><div class="next-bracket-matches">';
+        foreach ($round['matches'] as $match) {
+            $isUpcoming = $match['status'] !== 'finished';
+            $html .= '<article class="next-bracket-match' . ($isUpcoming ? ' is-upcoming' : '') . '"><small>Terrain ' . (int) $match['field_number'] . '</small>'
+                . bracket_team_row($match['participant_a_name'], $match['participant_a_players'] ?? '', $match['score_a'], (int) $match['winner_participant_id'] === (int) $match['participant_a_id'])
+                . bracket_team_row($match['participant_b_name'], $match['participant_b_players'] ?? '', $match['score_b'], (int) $match['winner_participant_id'] === (int) $match['participant_b_id'])
+                . '</article>';
+        }
+        $html .= '</div></section>';
+    }
+    return $html . '</div></div>';
+}
+
+function bracket_team_row(string $name, ?string $players, mixed $score, bool $winner): string
+{
+    return '<p class="' . ($winner ? 'winner' : '') . '"><span class="team-name">' . participant_label($name, $players) . '</span><strong class="team-score">' . h($score ?? '-') . '</strong></p>';
+}
+
+function next_matches_table(array $matches): string
+{
+    $html = '<div class="panel"><h2>Prochains matchs</h2><table><thead><tr><th>Terrain</th><th>Poule</th><th>Equipe A</th><th></th><th>Equipe B</th></tr></thead><tbody>';
+    foreach ($matches as $m) {
+        $phaseLabel = $m['phase'] === 'final' ? $m['round'] : $m['pool_name'];
+        $html .= '<tr><td>Terrain ' . (int) $m['field_number'] . '</td><td>' . h($phaseLabel) . '</td><td>' . participant_label($m['participant_a_name'], $m['participant_a_players'] ?? '') . '</td><td>vs</td><td>' . participant_label($m['participant_b_name'], $m['participant_b_players'] ?? '') . '</td></tr>';
+    }
+    if (!$matches) {
+        $html .= '<tr><td colspan="5" class="empty">Tous les matchs sont termines.</td></tr>';
+    }
+    return $html . '</tbody></table></div>';
 }
 
 function compact_results_table(array $matches): string
 {
     $html = '<table><thead><tr><th>Equipe A</th><th>Score</th><th>Equipe B</th></tr></thead><tbody>';
     foreach ($matches as $m) {
-        $html .= '<tr><td>' . h($m['participant_a_name']) . '</td><td><strong>' . h($m['score_a']) . '-' . h($m['score_b']) . '</strong></td><td>' . h($m['participant_b_name']) . '</td></tr>';
+        $html .= '<tr><td>' . participant_label($m['participant_a_name'], $m['participant_a_players'] ?? '') . '</td><td><strong>' . h($m['score_a']) . '-' . h($m['score_b']) . '</strong></td><td>' . participant_label($m['participant_b_name'], $m['participant_b_players'] ?? '') . '</td></tr>';
     }
     if (!$matches) {
         $html .= '<tr><td class="empty">Aucun resultat pour le moment.</td></tr>';
@@ -496,19 +624,12 @@ function display_view(int $id): void
     if ($summary['is_complete']) {
         echo public_finished_panel($summary);
         echo auto_refresh_script(5);
-        layout('Affichage TV', ob_get_clean(), 'display');
+        layout('Affichage TV', ob_get_clean(), 'display display-complete');
         return;
     }
-    echo '<section class="display-grid"><div class="panel"><h2>Prochains matchs</h2><table><thead><tr><th>Terrain</th><th>Poule</th><th>Equipe A</th><th></th><th>Equipe B</th></tr></thead><tbody>';
-    foreach ($matches as $m) {
-        $phaseLabel = $m['phase'] === 'final' ? $m['round'] : $m['pool_name'];
-        echo '<tr><td>Terrain ' . (int) $m['field_number'] . '</td><td>' . h($phaseLabel) . '</td><td>' . h($m['participant_a_name']) . '</td><td>vs</td><td>' . h($m['participant_b_name']) . '</td></tr>';
-    }
-    if (!$matches) {
-        echo '<tr><td colspan="5" class="empty">Tous les matchs sont termines.</td></tr>';
-    }
-    echo '</tbody></table></div><div class="panel"><h2>Classement general</h2>' . standings_table(array_slice(standings($id), 0, 8)) . '</div></section>';
-    $temporaryPanel = $summary['qualified_teams'] ? public_qualified_panel($summary['qualified_teams']) : ($summary['final_bracket'] ? final_bracket_panel($summary['final_bracket']) : public_rules_panel($t));
+    $nextMatchesPanel = $summary['final_bracket'] ? final_next_matches_panel($summary['final_bracket'], $matches) : next_matches_table($matches);
+    echo '<section class="display-grid">' . $nextMatchesPanel . public_pool_standings_panel($id, $summary) . '</section>';
+    $temporaryPanel = $summary['qualified_teams'] ? public_qualified_panel($summary['qualified_teams']) : public_rules_panel($t);
     echo '<section class="display-grid secondary"><div class="panel"><h2>Derniers resultats</h2>' . compact_results_table($summary['last_results']) . '</div><div class="panel public-highlight"><h2>Infos tournoi</h2><p><strong>Leader actuel</strong><span>' . h($summary['leader_label']) . '</span></p><p><strong>Match le plus serre</strong><span>' . h($summary['closest_match_label']) . '</span></p><p><strong>Poules</strong><span>' . (int) $summary['pools_count'] . '</span></p></div>' . $temporaryPanel . '</section>';
     echo auto_refresh_script(5);
     layout('Affichage TV', ob_get_clean(), 'display');
@@ -534,12 +655,12 @@ function mobile_view(int $id): void
     echo public_rules_panel($t);
     echo '<section class="panel"><h2>Prochains matchs</h2><table><tbody>';
     foreach (array_slice($summary['next_matches'], 0, 10) as $m) {
-        echo '<tr><td>Terrain ' . (int) $m['field_number'] . '</td><td>' . h($m['participant_a_name']) . ' vs ' . h($m['participant_b_name']) . '</td></tr>';
+        echo '<tr><td>Terrain ' . (int) $m['field_number'] . '</td><td>' . match_participants_label($m) . '</td></tr>';
     }
     if (!$summary['next_matches']) {
         echo '<tr><td class="empty">Tous les matchs sont termines.</td></tr>';
     }
-    echo '</tbody></table></section><section class="panel"><h2>Derniers resultats</h2>' . compact_results_table($summary['last_results']) . '</section><section class="panel"><h2>Classement</h2>' . standings_table(standings($id)) . '</section>';
+    echo '</tbody></table></section><section class="panel"><h2>Derniers resultats</h2>' . compact_results_table($summary['last_results']) . '</section>' . public_pool_standings_panel($id, $summary);
     echo auto_refresh_script(5);
     layout('Vue mobile', ob_get_clean());
 }

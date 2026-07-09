@@ -89,6 +89,24 @@ if (preg_match('#^/admin/(\d+)/participants/import$#', $path, $m) && is_post()) 
     redirect_to('/admin/' . $id . '/participants');
 }
 
+if (preg_match('#^/admin/(\d+)/participants/random-teams$#', $path, $m) && is_post()) {
+    $id = (int) $m[1];
+    generate_random_teams($id, post_string('players'), post_int('team_size', 2), post_string('team_prefix', 'Equipe'));
+    redirect_to('/admin/' . $id . '/participants');
+}
+
+if (preg_match('#^/admin/(\d+)/participants/update$#', $path, $m) && is_post()) {
+    $id = (int) $m[1];
+    update_participant($id, post_int('participant_id'), [
+        'name' => post_string('name'),
+        'type' => post_string('type', 'team'),
+        'players' => post_string('players'),
+        'color' => post_string('color'),
+        'emoji' => post_string('emoji'),
+    ]);
+    redirect_to('/admin/' . $id . '/participants');
+}
+
 if (preg_match('#^/admin/(\d+)/participants/delete$#', $path, $m) && is_post()) {
     $id = (int) $m[1];
     delete_participant($id, post_int('participant_id'));

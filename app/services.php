@@ -110,6 +110,21 @@ function add_participant(int $tournamentId, array $data): void
     $stmt->execute([$tournamentId, $data['name'], $data['type'], $data['players'], $data['color'], $data['emoji'], now_iso()]);
 }
 
+function update_participant(int $tournamentId, int $participantId, array $data): void
+{
+    $stmt = db()->prepare('UPDATE participants SET name = ?, type = ?, players = ?, color = ?, emoji = ? WHERE tournament_id = ? AND id = ?');
+    $stmt->execute([
+        trim((string) $data['name']),
+        $data['type'] === 'player' ? 'player' : 'team',
+        trim((string) $data['players']),
+        trim((string) $data['color']),
+        trim((string) $data['emoji']),
+        $tournamentId,
+        $participantId,
+    ]);
+    flash('Participant modifie.');
+}
+
 function import_participants(int $tournamentId, string $names): void
 {
     $lines = preg_split('/\R+/', $names) ?: [];
@@ -129,6 +144,68 @@ function import_participants(int $tournamentId, string $names): void
         $added++;
     }
     flash($added . ' participant(s) importe(s).');
+}
+
+function generate_random_teams(int $tournamentId, string $playersInput, int $teamSize, string $teamPrefix): void
+{
+    $players = parse_random_team_players($playersInput);
+    $sourcePlayerIds = [];
+    if (!$players) {
+        $sourcePlayers = array_values(array_filter(
+            participants($tournamentId),
+            static fn(array $participant): bool => $participant['type'] === 'player'
+        ));
+        foreach ($sourcePlayers as $sourcePlayer) {
+            if (participant_has_matches((int) $sourcePlayer['id'])) {
+                flash('Generation annulee : des joueurs existants sont deja utilises dans des matchs.');
+                return;
+            }
+            $sourcePlayerIds[] = (int) $sourcePlayer['id'];
+            $players[] = $sourcePlayer['name'];
+        }
+    }
+
+    $players = array_values(array_filter(array_map('trim', $players), static fn(string $value): bool => $value !== ''));
+    if (count($players) < 2) {
+        flash('Ajoutez au moins deux joueurs pour creer des equipes aleatoires.');
+        return;
+    }
+
+    $teamSize = max(1, $teamSize);
+    $teamPrefix = trim($teamPrefix) !== '' ? trim($teamPrefix) : 'Equipe';
+    shuffle($players);
+
+    $teamCount = max(1, (int) ceil(count($players) / $teamSize));
+    if (count($players) % $teamSize === 1 && $teamCount > 1) {
+        $teamCount--;
+    }
+
+    $teams = array_fill(0, $teamCount, []);
+    foreach ($players as $index => $player) {
+        $teams[$index % $teamCount][] = $player;
+    }
+
+    foreach ($sourcePlayerIds as $sourcePlayerId) {
+        db()->prepare('DELETE FROM participants WHERE tournament_id = ? AND id = ?')->execute([$tournamentId, $sourcePlayerId]);
+    }
+
+    foreach ($teams as $index => $teamPlayers) {
+        add_participant($tournamentId, [
+            'name' => $teamPrefix . ' ' . ($index + 1),
+            'type' => 'team',
+            'players' => implode(PHP_EOL, $teamPlayers),
+            'color' => '',
+            'emoji' => '',
+        ]);
+    }
+
+    flash(count($teams) . ' equipe(s) aleatoire(s) creee(s).');
+}
+
+function parse_random_team_players(string $playersInput): array
+{
+    $players = preg_split('/[\r\n;,]+/', $playersInput) ?: [];
+    return array_values(array_filter(array_map('trim', $players), static fn(string $value): bool => $value !== ''));
 }
 
 function parse_participant_import_line(string $line): array
@@ -294,76 +371,82 @@ function insert_match(PDO $pdo, int $tournamentId, ?int $poolId, string $phase, 
         ->execute([$tournamentId, $poolId, $phase, $round, $fieldNumber, $participantAId, $participantBId, 'scheduled', $order, now_iso(), now_iso()]);
 }
 
-function generate_final_matches(int $tournamentId): void
+function generate_final_matches(int $tournamentId, bool $useFlash = true): ?string
 {
     $tournament = find_tournament($tournamentId);
     if ($tournament['format'] !== 'pools_finals') {
-        flash('Les phases finales sont disponibles uniquement pour le format Poules + phases finales.');
-        return;
+        if ($useFlash) {
+            flash('Les phases finales sont disponibles uniquement pour le format Poules + phases finales.');
+        }
+        return null;
     }
 
     $matches = matches_for_tournament($tournamentId);
     if (!$matches) {
-        flash('Generez les matchs de poule avant les phases finales.');
-        return;
+        if ($useFlash) {
+            flash('Generez les matchs de poule avant les phases finales.');
+        }
+        return null;
     }
 
     $poolMatches = array_filter($matches, static fn(array $match): bool => $match['phase'] === 'pool');
     $unfinishedPoolMatches = array_filter($poolMatches, static fn(array $match): bool => $match['status'] !== 'finished');
     if ($unfinishedPoolMatches) {
-        flash('Terminez tous les matchs de poule avant de generer les phases finales.');
-        return;
+        if ($useFlash) {
+            flash('Terminez tous les matchs de poule avant de generer les phases finales.');
+        }
+        return null;
     }
 
     $finalMatches = array_values(array_filter($matches, static fn(array $match): bool => $match['phase'] === 'final'));
     $semiFinals = array_values(array_filter($finalMatches, static fn(array $match): bool => $match['round'] === 'Demi-finale'));
     if (!$semiFinals) {
-        generate_semi_finals($tournamentId, $matches);
-        return;
+        return generate_semi_finals($tournamentId, $matches, $useFlash);
     }
 
     $finalRoundMatches = array_values(array_filter($finalMatches, static fn(array $match): bool => in_array($match['round'], ['Finale', 'Petite finale'], true)));
     if ($finalRoundMatches) {
-        flash('Les finales sont deja generees.');
-        return;
+        if ($useFlash) {
+            flash('Les finales sont deja generees.');
+        }
+        return null;
     }
 
     $unfinishedSemiFinals = array_filter($semiFinals, static fn(array $match): bool => $match['status'] !== 'finished');
     if ($unfinishedSemiFinals) {
-        flash('Terminez les demi-finales avant de generer la finale.');
-        return;
+        if ($useFlash) {
+            flash('Terminez les demi-finales avant de generer la finale.');
+        }
+        return null;
     }
 
-    generate_final_and_third_place($tournamentId, $matches, $semiFinals);
+    return generate_final_and_third_place($tournamentId, $matches, $semiFinals, $useFlash);
 }
 
-function generate_semi_finals(int $tournamentId, array $matches): void
+function generate_semi_finals(int $tournamentId, array $matches, bool $useFlash = true): ?string
 {
     $pools = pools($tournamentId);
-    if (count($pools) < 2) {
-        flash('Les demi-finales necessitent au moins deux poules.');
-        return;
-    }
-
-    $qualified = [];
-    foreach (array_slice($pools, 0, 2) as $pool) {
-        $standing = standings($tournamentId, (int) $pool['id']);
-        if (count($standing) < 2) {
-            flash('Chaque poule doit avoir au moins deux qualifies.');
-            return;
+    $qualified = final_qualified_teams($tournamentId, $pools);
+    if (count($qualified) < 4) {
+        if ($useFlash) {
+            flash('Les demi-finales necessitent quatre qualifies.');
         }
-        $qualified[] = [$standing[0], $standing[1]];
+        return null;
     }
 
     $nextOrder = next_match_order($matches);
     $fieldCount = max(1, (int) find_tournament($tournamentId)['number_of_fields']);
     $pdo = db();
-    insert_match($pdo, $tournamentId, null, 'final', 'Demi-finale', (($nextOrder - 1) % $fieldCount) + 1, (int) $qualified[0][0]['participant_id'], (int) $qualified[1][1]['participant_id'], $nextOrder);
-    insert_match($pdo, $tournamentId, null, 'final', 'Demi-finale', ($nextOrder % $fieldCount) + 1, (int) $qualified[1][0]['participant_id'], (int) $qualified[0][1]['participant_id'], $nextOrder + 1);
-    flash('Demi-finales generees.');
+    insert_match($pdo, $tournamentId, null, 'final', 'Demi-finale', (($nextOrder - 1) % $fieldCount) + 1, (int) $qualified[0]['participant_id'], (int) $qualified[3]['participant_id'], $nextOrder);
+    insert_match($pdo, $tournamentId, null, 'final', 'Demi-finale', ($nextOrder % $fieldCount) + 1, (int) $qualified[1]['participant_id'], (int) $qualified[2]['participant_id'], $nextOrder + 1);
+    $message = 'Demi-finales generees.';
+    if ($useFlash) {
+        flash($message);
+    }
+    return $message;
 }
 
-function generate_final_and_third_place(int $tournamentId, array $matches, array $semiFinals): void
+function generate_final_and_third_place(int $tournamentId, array $matches, array $semiFinals, bool $useFlash = true): string
 {
     $winners = [];
     $losers = [];
@@ -378,7 +461,11 @@ function generate_final_and_third_place(int $tournamentId, array $matches, array
     $pdo = db();
     insert_match($pdo, $tournamentId, null, 'final', 'Finale', (($nextOrder - 1) % $fieldCount) + 1, $winners[0], $winners[1], $nextOrder);
     insert_match($pdo, $tournamentId, null, 'final', 'Petite finale', ($nextOrder % $fieldCount) + 1, $losers[0], $losers[1], $nextOrder + 1);
-    flash('Finale et petite finale generees.');
+    $message = 'Finale et petite finale generees.';
+    if ($useFlash) {
+        flash($message);
+    }
+    return $message;
 }
 
 function next_match_order(array $matches): int
@@ -390,7 +477,12 @@ function next_match_order(array $matches): int
 function matches_for_tournament(int $tournamentId): array
 {
     $stmt = db()->prepare(<<<'SQL'
-SELECT m.*, pa.name AS participant_a_name, pb.name AS participant_b_name, p.name AS pool_name
+SELECT m.*,
+    pa.name AS participant_a_name,
+    pa.players AS participant_a_players,
+    pb.name AS participant_b_name,
+    pb.players AS participant_b_players,
+    p.name AS pool_name
 FROM matches m
 JOIN participants pa ON pa.id = m.participant_a_id
 JOIN participants pb ON pb.id = m.participant_b_id
@@ -431,11 +523,11 @@ function public_tournament_summary(int $tournamentId): array
         }
     }
 
-    $leaderLabel = $topStanding ? $topStanding['participant'] . ' (' . $topStanding['ranking_points'] . ' pts)' : 'Aucun';
+    $leaderLabel = $topStanding ? participant_text_label($topStanding['participant'], $topStanding['players'] ?? '') . ' (' . $topStanding['ranking_points'] . ' pts)' : 'Aucun';
     $closestLabel = 'Aucun';
     if ($closestMatch) {
         $m = $closestMatch['match'];
-        $closestLabel = $m['participant_a_name'] . ' ' . $m['score_a'] . '-' . $m['score_b'] . ' ' . $m['participant_b_name'];
+        $closestLabel = participant_text_label($m['participant_a_name'], $m['participant_a_players'] ?? '') . ' ' . $m['score_a'] . '-' . $m['score_b'] . ' ' . participant_text_label($m['participant_b_name'], $m['participant_b_players'] ?? '');
     }
 
     return [
@@ -459,6 +551,15 @@ function public_tournament_summary(int $tournamentId): array
         'podium' => $finalRanking['podium'],
         'final_standings' => $finalRanking['remaining'],
     ];
+}
+
+function participant_text_label(string $name, ?string $players = ''): string
+{
+    $players = trim((string) $players);
+    if ($players === '') {
+        return $name;
+    }
+    return $name . ' (' . (preg_replace('/\s*\R+\s*/', ', ', $players) ?? $players) . ')';
 }
 
 function public_final_ranking(int $tournamentId, array $matches, array $standings): array
@@ -510,6 +611,7 @@ function podium_row_from_match(array $match, int $participantId): array
     return [
         'participant_id' => $participantId,
         'participant' => $isParticipantA ? $match['participant_a_name'] : $match['participant_b_name'],
+        'players' => $isParticipantA ? $match['participant_a_players'] : $match['participant_b_players'],
         'ranking_points' => 0,
         'played' => 0,
         'wins' => 0,
@@ -568,18 +670,45 @@ function public_qualified_teams(int $tournamentId, array $tournament, array $mat
         return [];
     }
 
-    $qualified = [];
-    foreach (array_slice($pools, 0, 2) as $pool) {
+    return final_qualified_teams($tournamentId, $pools);
+}
+
+function final_qualified_teams(int $tournamentId, array $pools, int $limit = 4): array
+{
+    $candidatesByRank = [];
+    foreach ($pools as $pool) {
         foreach (array_slice(standings($tournamentId, (int) $pool['id']), 0, 2) as $rank => $row) {
-            $qualified[] = [
-                'pool_name' => $pool['name'],
-                'rank' => $rank + 1,
-                'participant' => $row['participant'],
-                'points' => (int) $row['ranking_points'],
-            ];
+            $row['pool_id'] = (int) $pool['id'];
+            $row['pool_name'] = $pool['name'];
+            $row['rank'] = $rank + 1;
+            $row['points'] = (int) $row['ranking_points'];
+            $candidatesByRank[$rank + 1][] = $row;
+        }
+    }
+
+    ksort($candidatesByRank);
+    $qualified = [];
+    foreach ($candidatesByRank as $rows) {
+        usort($rows, 'compare_final_seed');
+        foreach ($rows as $row) {
+            $qualified[] = $row;
+            if (count($qualified) >= $limit) {
+                return $qualified;
+            }
         }
     }
     return $qualified;
+}
+
+function compare_final_seed(array $a, array $b): int
+{
+    foreach (['ranking_points', 'wins', 'diff', 'scored'] as $key) {
+        $comparison = (int) $b[$key] <=> (int) $a[$key];
+        if ($comparison !== 0) {
+            return $comparison;
+        }
+    }
+    return strnatcasecmp((string) $a['participant'], (string) $b['participant']);
 }
 
 function save_score(int $tournamentId, int $matchId, int $scoreA, int $scoreB, bool $useFlash = true): array
@@ -609,6 +738,10 @@ function save_score(int $tournamentId, int $matchId, int $scoreA, int $scoreB, b
     db()->prepare('UPDATE matches SET score_a = ?, score_b = ?, draft_score_a = NULL, draft_score_b = NULL, winner_participant_id = ?, status = ?, updated_at = ? WHERE id = ?')
         ->execute([$scoreA, $scoreB, $winner, 'finished', now_iso(), $matchId]);
     $message = 'Score valide et publie.';
+    $generatedMessage = generate_final_matches($tournamentId, false);
+    if ($generatedMessage) {
+        $message .= ' ' . $generatedMessage;
+    }
     if ($useFlash) {
         flash($message);
     }
@@ -648,6 +781,7 @@ function standings(int $tournamentId, ?int $poolId = null): array
         $rows[(int) $participant['id']] = [
             'participant_id' => (int) $participant['id'],
             'participant' => $participant['name'],
+            'players' => $participant['players'],
             'played' => 0,
             'wins' => 0,
             'losses' => 0,
