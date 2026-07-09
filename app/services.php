@@ -256,15 +256,33 @@ function generate_matches(int $tournamentId, bool $force = false): void
     $pdo->prepare('DELETE FROM matches WHERE tournament_id = ?')->execute([$tournamentId]);
     $order = 1;
     $fieldCount = max(1, (int) $tournament['number_of_fields']);
+    $matchesByPool = [];
     foreach ($allPools as $pool) {
         $items = pool_participants((int) $pool['id']);
+        $poolMatches = [];
         for ($i = 0; $i < count($items); $i++) {
             for ($j = $i + 1; $j < count($items); $j++) {
-                insert_match($pdo, $tournamentId, (int) $pool['id'], 'pool', $pool['name'], (($order - 1) % $fieldCount) + 1, (int) $items[$i]['id'], (int) $items[$j]['id'], $order);
-                $order++;
+                $poolMatches[] = [(int) $items[$i]['id'], (int) $items[$j]['id']];
             }
         }
+        $matchesByPool[] = ['pool' => $pool, 'matches' => $poolMatches];
     }
+
+    $round = 0;
+    do {
+        $inserted = false;
+        foreach ($matchesByPool as $poolSchedule) {
+            if (!isset($poolSchedule['matches'][$round])) {
+                continue;
+            }
+            [$participantAId, $participantBId] = $poolSchedule['matches'][$round];
+            insert_match($pdo, $tournamentId, (int) $poolSchedule['pool']['id'], 'pool', $poolSchedule['pool']['name'], (($order - 1) % $fieldCount) + 1, $participantAId, $participantBId, $order);
+            $order++;
+            $inserted = true;
+        }
+        $round++;
+    } while ($inserted);
+
     $pdo->prepare('UPDATE tournaments SET status = ?, updated_at = ? WHERE id = ?')->execute(['running', now_iso(), $tournamentId]);
     $pdo->commit();
     flash('Matchs generes.');

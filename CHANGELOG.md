@@ -15,6 +15,7 @@ The project follows semantic versioning: `MAJOR.MINOR.PATCH`.
 - Compacted the TV display to fit in one viewport without the redundant mobile-access panel.
 - Added full round-robin and pools-with-finals tournament formats.
 - Added pool or final-round labels to upcoming matches on the TV display.
+- Improved match planning by alternating pools instead of scheduling one pool completely before the next.
 
 ## [0.2.3] - 2026-07-08
 

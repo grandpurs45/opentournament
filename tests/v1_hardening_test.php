@@ -46,9 +46,11 @@ $rules = plugin_public_rules('molkky', find_tournament($tournamentId)['settings_
 assert_true(str_contains(implode(' ', $rules), '50'), 'Public rules should include configured target score.');
 
 generate_matches($tournamentId);
-assert_true(count(matches_for_tournament($tournamentId)) === 12, '2 pools of 4 should generate 12 matches.');
+$generatedMatches = matches_for_tournament($tournamentId);
+assert_true(count($generatedMatches) === 12, '2 pools of 4 should generate 12 matches.');
+assert_true($generatedMatches[0]['pool_name'] !== $generatedMatches[1]['pool_name'], 'Match planning should alternate pools.');
 
-$firstMatch = matches_for_tournament($tournamentId)[0];
+$firstMatch = $generatedMatches[0];
 save_score_draft($tournamentId, (int) $firstMatch['id'], 50, 37);
 $draftMatch = matches_for_tournament($tournamentId)[0];
 assert_true((int) $draftMatch['draft_score_a'] === 50 && (int) $draftMatch['draft_score_b'] === 37, 'Draft score should be persisted.');
