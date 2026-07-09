@@ -315,8 +315,7 @@ function display_view(int $id): void
         echo '<tr><td class="empty">Tous les matchs sont termines.</td></tr>';
     }
     echo '</tbody></table></div><div class="panel"><h2>Classement general</h2>' . standings_table(array_slice(standings($id), 0, 8)) . '</div></section>';
-    echo '<section class="display-grid secondary"><div class="panel"><h2>Derniers resultats</h2>' . compact_results_table($summary['last_results']) . '</div><div class="panel public-highlight"><h2>Infos tournoi</h2><p><strong>Leader actuel</strong><span>' . h($summary['leader_label']) . '</span></p><p><strong>Match le plus serre</strong><span>' . h($summary['closest_match_label']) . '</span></p><p><strong>Poules</strong><span>' . (int) $summary['pools_count'] . '</span></p></div></section>';
-    echo '<section class="display-grid rules-row">' . public_rules_panel($t) . '<div class="panel public-highlight"><h2>Acces mobile</h2><p><strong>QR Code</strong><span>Scannez le code affiche en haut de l ecran.</span></p><p><strong>Lien</strong><span>' . h($mobileUrl) . '</span></p></div></section>';
+    echo '<section class="display-grid secondary"><div class="panel"><h2>Derniers resultats</h2>' . compact_results_table($summary['last_results']) . '</div><div class="panel public-highlight"><h2>Infos tournoi</h2><p><strong>Leader actuel</strong><span>' . h($summary['leader_label']) . '</span></p><p><strong>Match le plus serre</strong><span>' . h($summary['closest_match_label']) . '</span></p><p><strong>Poules</strong><span>' . (int) $summary['pools_count'] . '</span></p></div>' . public_rules_panel($t) . '</section>';
     echo auto_refresh_script(5);
     layout('Affichage TV', ob_get_clean(), 'display');
 }

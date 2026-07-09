@@ -12,6 +12,7 @@ The project follows semantic versioning: `MAJOR.MINOR.PATCH`.
 - Added private draft autosave on the match entry page before public score validation.
 - Added public rule display to TV and mobile views.
 - Opened the TV display from admin links in a new tab or window.
+- Compacted the TV display to fit in one viewport without the redundant mobile-access panel.
 
 ## [0.2.3] - 2026-07-08
 
